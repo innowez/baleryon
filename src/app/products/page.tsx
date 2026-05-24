@@ -208,7 +208,7 @@ export default function ProductsPage() {
 
               {/* Product Grid */}
               {paginatedProducts.length > 0 ? (
-                <>
+                <>  
                   <ProductGrid>
                     {paginatedProducts.map((product, idx) => (
                       <Link key={product.id} href={`/products/${product.id}`} className="block">

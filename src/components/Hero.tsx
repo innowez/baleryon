@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export function Hero() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -75,10 +76,10 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
         >
-          <button className="button-primary bg-white text-[#0F0F0F] hover:bg-white/95 flex items-center justify-center gap-2 w-full sm:w-auto">
-            Shop Men
+          <Link href={'/products'} className="button-primary bg-white text-[#0F0F0F] hover:bg-white/95 flex items-center justify-center gap-2 w-full sm:w-auto">
+            Shop Now
             <ArrowRight size={16} />
-          </button>
+          </Link>
         </motion.div>
       </div>
 

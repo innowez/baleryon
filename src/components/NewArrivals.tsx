@@ -140,8 +140,25 @@ export function NewArrivals() {
                 </div>
               </div>
 
-              {/* Quick Add Button */}
-              <motion.button
+              {/* Action Buttons */}
+              <div className="flex gap-2 mt-4 sm:hidden">
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex-1 bg-[#0F0F0F] text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                >
+                  {/* <Plus size={16} />  */}
+                  Add To Cart
+                </button>
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex-1 bg-[#FF3B30] text-white py-2.5 rounded-xl font-semibold hover:bg-[#FF3B30]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                >
+                  Buy Now
+                </button>
+              </div>
+
+              {/* Desktop Hover Buttons */}
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={
                   hovered === product.id
@@ -149,11 +166,21 @@ export function NewArrivals() {
                     : { opacity: 0, y: 10 }
                 }
                 transition={{ duration: 0.3 }}
-                onClick={() => handleAddToCart(product)}
-                className="w-full mt-4 bg-[#0F0F0F] text-white py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                className="hidden sm:flex gap-2 mt-4"
               >
-                <Plus size={16} /> Add
-              </motion.button>
+                <motion.button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex-1 bg-[#0F0F0F] text-white py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                >
+                  <Plus size={16} /> Add to Cart
+                </motion.button>
+                <motion.button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex-1 bg-[#FF3B30] text-white py-2.5 sm:py-3 rounded-xl font-semibold hover:bg-[#FF3B30]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                >
+                  Buy Now
+                </motion.button>
+              </motion.div>
             </motion.div>
           ))}
         </div>
