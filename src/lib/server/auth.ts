@@ -8,6 +8,7 @@
  * out by setting `NEXT_PUBLIC_API_URL` to a real backend.
  */
 import crypto from "crypto";
+import { isSmsConfigured, sendSms } from "./sms";
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const OTP_RESEND_INTERVAL_MS = 30 * 1000; // 30 seconds between sends
@@ -71,11 +72,9 @@ export interface SendOtpResult {
   ok: boolean;
   status: number;
   message: string;
-  /** Only populated outside production so the flow is testable without SMS. */
-  devOtp?: string;
 }
 
-export function createOtp(rawPhone: string): SendOtpResult {
+export async function createOtp(rawPhone: string): Promise<SendOtpResult> {
   const phone = normalizePhone(rawPhone);
 
   if (!isValidPhone(phone)) {
@@ -107,15 +106,40 @@ export function createOtp(rawPhone: string): SendOtpResult {
     attempts: 0,
   });
 
-  // In a real deployment this is where an SMS provider would be called.
-  console.log(`[auth] OTP for ${phone}: ${code}`);
+  const text = `Your Baleryon verification code is ${code}. It expires in 5 minutes.`;
 
-  const isProd = process.env.NODE_ENV === "production";
+  if (isSmsConfigured()) {
+    try {
+      await sendSms(phone, text);
+    } catch (err) {
+      // Don't leave a usable code around if delivery failed.
+      state.otpByPhone.delete(phone);
+      console.error("[auth] Failed to send OTP SMS", err);
+      return {
+        ok: false,
+        status: 502,
+        message: "Could not send the verification code. Please try again.",
+      };
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    // Never silently skip delivery or fall back to leaking the code in prod.
+    state.otpByPhone.delete(phone);
+    console.error("[auth] SMS provider is not configured");
+    return {
+      ok: false,
+      status: 500,
+      message: "SMS service is unavailable. Please try again later.",
+    };
+  } else {
+    // Local development without Twilio: print to the server console only.
+    // The code is never returned to the client.
+    console.log(`[auth] OTP for ${phone}: ${code}`);
+  }
+
   return {
     ok: true,
     status: 200,
     message: "OTP sent successfully",
-    devOtp: isProd ? undefined : code,
   };
 }
 
