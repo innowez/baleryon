@@ -4,23 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Mail, Lock, Phone, Eye, EyeOff, ShieldCheck, ArrowLeft } from "lucide-react";
-
-type AuthMethod = "email" | "phone";
-type PhoneStep = "phone" | "otp";
+import { Mail, Lock, Phone, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, loginWithGoogle, requestPhoneOtp, loginWithPhone } =
     useAuthStore();
 
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
-  const [phoneStep, setPhoneStep] = useState<PhoneStep>("phone");
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [phoneStep, setPhoneStep] = useState<"phone" | "otp">("phone");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
-  const [devOtp, setDevOtp] = useState<string | undefined>();
+  const [otpInfo, setOtpInfo] = useState("");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -34,11 +30,11 @@ export default function LoginPage() {
     setError("");
   };
 
-  const selectPhoneMethod = () => {
-    setAuthMethod("phone");
-    setPhoneStep("phone");
+  const switchMethod = (method: "email" | "phone") => {
+    setAuthMethod(method);
     setError("");
-    setInfo("");
+    setOtpInfo("");
+    setPhoneStep("phone");
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -50,7 +46,9 @@ export default function LoginPage() {
       await login(formData.email, formData.password);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -58,17 +56,29 @@ export default function LoginPage() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.phone.trim()) {
+      setError("Phone number is required");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
-    setInfo("");
 
     try {
-      const otp = await requestPhoneOtp(formData.phone);
-      setDevOtp(otp);
+      const devOtp = await requestPhoneOtp(formData.phone);
+      setOtpInfo(
+        devOtp
+          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
+          : `We sent a 6-digit code to ${formData.phone}.`
+      );
       setPhoneStep("otp");
-      setInfo(`We sent a 6-digit code to ${formData.phone}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send OTP. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not send OTP. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +86,12 @@ export default function LoginPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.otp.trim()) {
+      setError("Please enter the OTP");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
@@ -83,34 +99,12 @@ export default function LoginPage() {
       await loginWithPhone(formData.phone, formData.otp);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid OTP. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    setError("");
-    setInfo("");
-
-    try {
-      const otp = await requestPhoneOtp(formData.phone);
-      setDevOtp(otp);
-      setInfo(`A new code was sent to ${formData.phone}.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resend OTP. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleChangeNumber = () => {
-    setPhoneStep("phone");
-    setFormData({ ...formData, otp: "" });
-    setError("");
-    setInfo("");
-    setDevOtp(undefined);
   };
 
   const handleGoogleLogin = async () => {
@@ -121,7 +115,11 @@ export default function LoginPage() {
       await loginWithGoogle();
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google login failed. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Google login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +180,7 @@ export default function LoginPage() {
             </button>
 
             <button
-              onClick={selectPhoneMethod}
+              onClick={() => switchMethod("phone")}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -197,7 +195,9 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium">OR</span>
+              <span className="px-4 bg-white text-gray-500 font-medium">
+                OR
+              </span>
             </div>
           </div>
 
@@ -208,15 +208,10 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Info Message */}
-          {info && (
+          {/* OTP Info Message */}
+          {otpInfo && authMethod === "phone" && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              {info}
-              {devOtp && (
-                <span className="block mt-1 font-semibold">
-                  Dev OTP (no SMS configured): {devOtp}
-                </span>
-              )}
+              {otpInfo}
             </div>
           )}
 
@@ -224,7 +219,7 @@ export default function LoginPage() {
           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-4">
             <button
               type="button"
-              onClick={() => setAuthMethod("email")}
+              onClick={() => switchMethod("email")}
               className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                 authMethod === "email"
                   ? "bg-white text-[#0F0F0F] shadow-sm"
@@ -235,7 +230,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={selectPhoneMethod}
+              onClick={() => switchMethod("phone")}
               className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                 authMethod === "phone"
                   ? "bg-white text-[#0F0F0F] shadow-sm"
@@ -250,8 +245,12 @@ export default function LoginPage() {
           {authMethod === "email" && (
             <form onSubmit={handleEmailLogin}>
               <div className="space-y-4">
+                {/* Email Input */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Email
                   </label>
                   <div className="relative">
@@ -269,8 +268,12 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* Password Input */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Password
                   </label>
                   <div className="relative">
@@ -299,6 +302,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* Forgot Password Link */}
                 <div className="text-right">
                   <Link
                     href="/forgot-password"
@@ -308,6 +312,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -319,12 +324,16 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* Phone OTP Login Form */}
+          {/* Phone Login Form (OTP) */}
           {authMethod === "phone" && phoneStep === "phone" && (
             <form onSubmit={handleSendOtp}>
               <div className="space-y-4">
+                {/* Phone Input */}
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Phone Number
                   </label>
                   <div className="relative">
@@ -342,6 +351,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -353,32 +363,36 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* Phone OTP Verify Form */}
+          {/* Phone Login Form (Verify OTP) */}
           {authMethod === "phone" && phoneStep === "otp" && (
             <form onSubmit={handleVerifyOtp}>
               <div className="space-y-4">
+                {/* OTP Input */}
                 <div>
-                  <label htmlFor="otp" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="otp"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Enter OTP
                   </label>
                   <div className="relative">
-                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
                       inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
                       id="otp"
                       name="otp"
                       value={formData.otp}
                       onChange={handleInputChange}
                       placeholder="6-digit code"
                       required
-                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl tracking-[0.4em] font-semibold focus:border-[#0F0F0F] focus:outline-none transition-colors"
+                      maxLength={6}
+                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl tracking-[0.5em] focus:border-[#0F0F0F] focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -387,19 +401,23 @@ export default function LoginPage() {
                   {isLoading ? "Verifying..." : "Verify & Login"}
                 </button>
 
+                {/* Secondary actions */}
                 <div className="flex items-center justify-between text-sm">
                   <button
                     type="button"
-                    onClick={handleChangeNumber}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 font-semibold text-gray-600 hover:text-[#0F0F0F] disabled:opacity-50"
+                    onClick={() => {
+                      setPhoneStep("phone");
+                      setFormData({ ...formData, otp: "" });
+                      setOtpInfo("");
+                      setError("");
+                    }}
+                    className="font-semibold text-gray-600 hover:text-[#0F0F0F]"
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    Change number
+                    ← Change number
                   </button>
                   <button
                     type="button"
-                    onClick={handleResendOtp}
+                    onClick={handleSendOtp}
                     disabled={isLoading}
                     className="font-semibold text-[#0F0F0F] hover:underline disabled:opacity-50"
                   >

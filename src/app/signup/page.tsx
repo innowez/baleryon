@@ -4,33 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  Mail,
-  Lock,
-  Phone,
-  Eye,
-  EyeOff,
-  User,
-  ShieldCheck,
-  ArrowLeft,
-} from "lucide-react";
-
-type AuthMethod = "email" | "phone";
-type PhoneStep = "phone" | "otp";
+import { Mail, Lock, Phone, Eye, EyeOff, User } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
   const { signup, loginWithGoogle, requestPhoneOtp, signupWithPhone } =
     useAuthStore();
 
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
-  const [phoneStep, setPhoneStep] = useState<PhoneStep>("phone");
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [phoneStep, setPhoneStep] = useState<"phone" | "otp">("phone");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
-  const [devOtp, setDevOtp] = useState<string | undefined>();
+  const [otpInfo, setOtpInfo] = useState("");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -46,11 +33,11 @@ export default function SignupPage() {
     setError("");
   };
 
-  const selectPhoneMethod = () => {
-    setAuthMethod("phone");
-    setPhoneStep("phone");
+  const switchMethod = (method: "email" | "phone") => {
+    setAuthMethod(method);
     setError("");
-    setInfo("");
+    setOtpInfo("");
+    setPhoneStep("phone");
   };
 
   const validateEmailForm = () => {
@@ -58,23 +45,28 @@ export default function SignupPage() {
       setError("Full name is required");
       return false;
     }
+
     if (!formData.email.trim()) {
       setError("Email is required");
       return false;
     }
+
     if (formData.password.length < 8) {
       setError("Password must be at least 8 characters");
       return false;
     }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return false;
     }
+
     return true;
   };
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validateEmailForm()) return;
 
     setIsLoading(true);
@@ -84,7 +76,9 @@ export default function SignupPage() {
       await signup(formData.email, formData.password, formData.fullName);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Signup failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +91,7 @@ export default function SignupPage() {
       setError("Full name is required");
       return;
     }
+
     if (!formData.phone.trim()) {
       setError("Phone number is required");
       return;
@@ -104,15 +99,21 @@ export default function SignupPage() {
 
     setIsLoading(true);
     setError("");
-    setInfo("");
 
     try {
-      const otp = await requestPhoneOtp(formData.phone);
-      setDevOtp(otp);
+      const devOtp = await requestPhoneOtp(formData.phone);
+      setOtpInfo(
+        devOtp
+          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
+          : `We sent a 6-digit code to ${formData.phone}.`
+      );
       setPhoneStep("otp");
-      setInfo(`We sent a 6-digit code to ${formData.phone}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send OTP. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not send OTP. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -120,6 +121,12 @@ export default function SignupPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.otp.trim()) {
+      setError("Please enter the OTP");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
@@ -127,34 +134,12 @@ export default function SignupPage() {
       await signupWithPhone(formData.phone, formData.otp, formData.fullName);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid OTP. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Signup failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    setError("");
-    setInfo("");
-
-    try {
-      const otp = await requestPhoneOtp(formData.phone);
-      setDevOtp(otp);
-      setInfo(`A new code was sent to ${formData.phone}.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resend OTP. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleChangeNumber = () => {
-    setPhoneStep("phone");
-    setFormData({ ...formData, otp: "" });
-    setError("");
-    setInfo("");
-    setDevOtp(undefined);
   };
 
   const handleGoogleSignup = async () => {
@@ -165,7 +150,11 @@ export default function SignupPage() {
       await loginWithGoogle();
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google signup failed. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Google signup failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -193,7 +182,9 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           {/* Title */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Create Account</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              Create Account
+            </h1>
             <p className="text-gray-600">Join BALERYON today</p>
           </div>
 
@@ -226,7 +217,7 @@ export default function SignupPage() {
             </button>
 
             <button
-              onClick={selectPhoneMethod}
+              onClick={() => switchMethod("phone")}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -241,7 +232,9 @@ export default function SignupPage() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium">OR</span>
+              <span className="px-4 bg-white text-gray-500 font-medium">
+                OR
+              </span>
             </div>
           </div>
 
@@ -252,15 +245,10 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Info Message */}
-          {info && (
+          {/* OTP Info Message */}
+          {otpInfo && authMethod === "phone" && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              {info}
-              {devOtp && (
-                <span className="block mt-1 font-semibold">
-                  Dev OTP (no SMS configured): {devOtp}
-                </span>
-              )}
+              {otpInfo}
             </div>
           )}
 
@@ -268,7 +256,7 @@ export default function SignupPage() {
           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-4">
             <button
               type="button"
-              onClick={() => setAuthMethod("email")}
+              onClick={() => switchMethod("email")}
               className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                 authMethod === "email"
                   ? "bg-white text-[#0F0F0F] shadow-sm"
@@ -279,7 +267,7 @@ export default function SignupPage() {
             </button>
             <button
               type="button"
-              onClick={selectPhoneMethod}
+              onClick={() => switchMethod("phone")}
               className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                 authMethod === "phone"
                   ? "bg-white text-[#0F0F0F] shadow-sm"
@@ -290,33 +278,39 @@ export default function SignupPage() {
             </button>
           </div>
 
-          {/* Full Name (shared) */}
-          <div className="mb-4">
-            <label htmlFor="fullName" className="block text-sm font-semibold mb-2">
-              Full Name
-            </label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                placeholder="John Doe"
-                required
-                disabled={authMethod === "phone" && phoneStep === "otp"}
-                className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-              />
-            </div>
-          </div>
-
           {/* Email Signup Form */}
           {authMethod === "email" && (
             <form onSubmit={handleEmailSignup}>
               <div className="space-y-4">
+                {/* Full Name Input */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="fullName"
+                    className="block text-sm font-semibold mb-2"
+                  >
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      placeholder="John Doe"
+                      required
+                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Email Input */}
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Email
                   </label>
                   <div className="relative">
@@ -334,8 +328,12 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Password Input */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Password
                   </label>
                   <div className="relative">
@@ -364,6 +362,7 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Confirm Password Input */}
                 <div>
                   <label
                     htmlFor="confirmPassword"
@@ -385,7 +384,9 @@ export default function SignupPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       {showConfirmPassword ? (
@@ -397,6 +398,25 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Terms and Conditions */}
+                <p className="text-xs text-gray-600">
+                  By signing up, you agree to our{" "}
+                  <Link
+                    href="/terms-and-conditions"
+                    className="font-semibold text-[#0F0F0F] hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy-policy"
+                    className="font-semibold text-[#0F0F0F] hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                </p>
+
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -408,12 +428,39 @@ export default function SignupPage() {
             </form>
           )}
 
-          {/* Phone OTP Signup Form */}
+          {/* Phone Signup Form (collect name + phone) */}
           {authMethod === "phone" && phoneStep === "phone" && (
             <form onSubmit={handleSendOtp}>
               <div className="space-y-4">
+                {/* Full Name Input */}
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="fullName"
+                    className="block text-sm font-semibold mb-2"
+                  >
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      placeholder="John Doe"
+                      required
+                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone Input */}
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Phone Number
                   </label>
                   <div className="relative">
@@ -431,6 +478,25 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Terms and Conditions */}
+                <p className="text-xs text-gray-600">
+                  By signing up, you agree to our{" "}
+                  <Link
+                    href="/terms-and-conditions"
+                    className="font-semibold text-[#0F0F0F] hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy-policy"
+                    className="font-semibold text-[#0F0F0F] hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                </p>
+
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -442,32 +508,56 @@ export default function SignupPage() {
             </form>
           )}
 
-          {/* Phone OTP Verify Form */}
+          {/* Phone Signup Form (verify OTP) */}
           {authMethod === "phone" && phoneStep === "otp" && (
             <form onSubmit={handleVerifyOtp}>
               <div className="space-y-4">
+                {/* Full Name (read-only confirmation) */}
                 <div>
-                  <label htmlFor="otp" className="block text-sm font-semibold mb-2">
+                  <label
+                    htmlFor="fullNameConfirm"
+                    className="block text-sm font-semibold mb-2"
+                  >
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      id="fullNameConfirm"
+                      value={formData.fullName}
+                      disabled
+                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                {/* OTP Input */}
+                <div>
+                  <label
+                    htmlFor="otp"
+                    className="block text-sm font-semibold mb-2"
+                  >
                     Enter OTP
                   </label>
                   <div className="relative">
-                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
                       inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
                       id="otp"
                       name="otp"
                       value={formData.otp}
                       onChange={handleInputChange}
                       placeholder="6-digit code"
                       required
-                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl tracking-[0.4em] font-semibold focus:border-[#0F0F0F] focus:outline-none transition-colors"
+                      maxLength={6}
+                      className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl tracking-[0.5em] focus:border-[#0F0F0F] focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -476,19 +566,23 @@ export default function SignupPage() {
                   {isLoading ? "Verifying..." : "Verify & Create Account"}
                 </button>
 
+                {/* Secondary actions */}
                 <div className="flex items-center justify-between text-sm">
                   <button
                     type="button"
-                    onClick={handleChangeNumber}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 font-semibold text-gray-600 hover:text-[#0F0F0F] disabled:opacity-50"
+                    onClick={() => {
+                      setPhoneStep("phone");
+                      setFormData({ ...formData, otp: "" });
+                      setOtpInfo("");
+                      setError("");
+                    }}
+                    className="font-semibold text-gray-600 hover:text-[#0F0F0F]"
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    Change number
+                    ← Change number
                   </button>
                   <button
                     type="button"
-                    onClick={handleResendOtp}
+                    onClick={handleSendOtp}
                     disabled={isLoading}
                     className="font-semibold text-[#0F0F0F] hover:underline disabled:opacity-50"
                   >
