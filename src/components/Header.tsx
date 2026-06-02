@@ -78,8 +78,8 @@ export function Header() {
                 </button>
               ) : (
                 <>
-                  {/* <button
-                    // onClick={() => setIsLoggedIn(true)}
+                  <Link
+                    href="/login"
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold text-sm transition-all ${
                       isScrolled
                         ? "text-[#0F0F0F] hover:bg-[#F5F5F5]"
@@ -88,8 +88,9 @@ export function Header() {
                   >
                     <LogIn size={16} />
                     Login
-                  </button> */}
-                  <button
+                  </Link>
+                  <Link
+                    href="/signup"
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
                       isScrolled
                         ? "bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90"
@@ -98,7 +99,7 @@ export function Header() {
                   >
                     <UserPlus size={16} />
                     Sign Up
-                  </button>
+                  </Link>
                 </>
               )}
             </div>
