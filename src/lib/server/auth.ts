@@ -127,15 +127,22 @@ export interface VerifyOtpResult {
   token?: string;
 }
 
-export function verifyOtp(
-  rawPhone: string,
-  code: string,
-  fullName?: string
-): VerifyOtpResult {
+interface ConsumeOtpResult {
+  ok: boolean;
+  status: number;
+  message: string;
+  phone: string;
+}
+
+/**
+ * Validate the OTP for a phone number and, on success, consume it so it can't
+ * be reused. Shared by the phone signup and login flows.
+ */
+function consumeOtp(rawPhone: string, code: string): ConsumeOtpResult {
   const phone = normalizePhone(rawPhone);
 
   if (!phone || !code) {
-    return { ok: false, status: 400, message: "Phone and OTP are required" };
+    return { ok: false, status: 400, message: "Phone and OTP are required", phone };
   }
 
   const entry = state.otpByPhone.get(phone);
@@ -144,6 +151,7 @@ export function verifyOtp(
       ok: false,
       status: 400,
       message: "No OTP requested for this number. Please request a new code.",
+      phone,
     };
   }
 
@@ -153,6 +161,7 @@ export function verifyOtp(
       ok: false,
       status: 400,
       message: "OTP has expired. Please request a new code.",
+      phone,
     };
   }
 
@@ -162,31 +171,81 @@ export function verifyOtp(
       ok: false,
       status: 429,
       message: "Too many attempts. Please request a new code.",
+      phone,
     };
   }
 
   if (entry.code !== String(code).trim()) {
     entry.attempts += 1;
-    return { ok: false, status: 401, message: "Invalid OTP. Please try again." };
+    return { ok: false, status: 401, message: "Invalid OTP. Please try again.", phone };
   }
 
   // OTP is valid — consume it.
   state.otpByPhone.delete(phone);
+  return { ok: true, status: 200, message: "OTP verified", phone };
+}
 
-  let user = state.usersByPhone.get(phone);
-  if (!user) {
-    user = {
-      id: crypto.randomUUID(),
-      fullName: fullName?.trim() || `User ${phone.slice(-4)}`,
-      email: `${phone.replace(/\D/g, "")}@phone.baleryon.com`,
-      phone,
-      provider: "phone",
-      createdAt: Date.now(),
-      lastLogin: null,
+// @desc    Register a new user with phone + OTP
+// @route   POST /api/auth/signup/phone
+export function signupWithPhone(
+  rawPhone: string,
+  code: string,
+  fullName?: string
+): VerifyOtpResult {
+  if (!fullName || !fullName.trim()) {
+    return { ok: false, status: 400, message: "Please provide your full name" };
+  }
+
+  const result = consumeOtp(rawPhone, code);
+  if (!result.ok) {
+    return { ok: false, status: result.status, message: result.message };
+  }
+
+  const { phone } = result;
+
+  if (state.usersByPhone.has(phone)) {
+    return {
+      ok: false,
+      status: 409,
+      message: "User already exists with this phone number. Please log in.",
     };
-    state.usersByPhone.set(phone, user);
-  } else if (fullName?.trim()) {
-    user.fullName = fullName.trim();
+  }
+
+  const user: StoredUser = {
+    id: crypto.randomUUID(),
+    fullName: fullName.trim(),
+    email: `${phone.replace(/\D/g, "")}@phone.baleryon.com`,
+    phone,
+    provider: "phone",
+    createdAt: Date.now(),
+    lastLogin: Date.now(),
+  };
+  state.usersByPhone.set(phone, user);
+
+  return {
+    ok: true,
+    status: 201,
+    message: "User registered successfully",
+    user: sanitizeUser(user),
+    token: generateToken(user.id),
+  };
+}
+
+// @desc    Log a user in with phone + OTP
+// @route   POST /api/auth/login/phone
+export function loginWithPhone(rawPhone: string, code: string): VerifyOtpResult {
+  const result = consumeOtp(rawPhone, code);
+  if (!result.ok) {
+    return { ok: false, status: result.status, message: result.message };
+  }
+
+  const user = state.usersByPhone.get(result.phone);
+  if (!user) {
+    return {
+      ok: false,
+      status: 404,
+      message: "No account found with this phone number. Please sign up.",
+    };
   }
 
   user.lastLogin = Date.now();

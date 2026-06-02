@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { verifyOtp } from "@/lib/server/auth";
+import { loginWithPhone } from "@/lib/server/auth";
 
-// @desc    Verify an OTP and log the user in (creating the account if needed)
-// @route   POST /api/auth/verify-otp
+// @desc    Log a user in with phone + OTP
+// @route   POST /api/auth/login/phone
 // @access  Public
 export async function POST(request: Request) {
-  let body: { phone?: string; otp?: string; fullName?: string };
+  let body: { phone?: string; otp?: string };
   try {
     body = await request.json();
   } catch {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = verifyOtp(body.phone, body.otp, body.fullName);
+  const result = loginWithPhone(body.phone, body.otp);
 
   if (!result.ok) {
     return NextResponse.json({ message: result.message }, { status: result.status });

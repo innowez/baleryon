@@ -32,12 +32,14 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   /** Request an OTP for the given phone number. Returns the dev OTP in non-prod. */
   requestPhoneOtp: (phone: string) => Promise<string | undefined>;
-  /** Verify an OTP and log in (existing user) or create the account. */
-  verifyPhoneOtp: (
+  /** Register a new account with phone + OTP. */
+  signupWithPhone: (
     phone: string,
     otp: string,
-    fullName?: string
+    fullName: string
   ) => Promise<void>;
+  /** Log an existing user in with phone + OTP. */
+  loginWithPhone: (phone: string, otp: string) => Promise<void>;
 }
 
 function mapUser(apiUser: ApiUser): User {
@@ -99,11 +101,24 @@ export const useAuthStore = create<AuthState>()(
         return data.devOtp;
       },
 
-      verifyPhoneOtp: async (phone: string, otp: string, fullName?: string) => {
-        const data = await apiPost<AuthResponse>("/api/auth/verify-otp", {
+      signupWithPhone: async (phone: string, otp: string, fullName: string) => {
+        const data = await apiPost<AuthResponse>("/api/auth/signup/phone", {
           phone,
           otp,
-          ...(fullName ? { fullName } : {}),
+          fullName,
+        });
+
+        set({
+          user: mapUser(data.user),
+          token: data.token,
+          isLoggedIn: true,
+        });
+      },
+
+      loginWithPhone: async (phone: string, otp: string) => {
+        const data = await apiPost<AuthResponse>("/api/auth/login/phone", {
+          phone,
+          otp,
         });
 
         set({

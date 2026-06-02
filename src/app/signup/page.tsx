@@ -20,7 +20,7 @@ type PhoneStep = "phone" | "otp";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup, loginWithGoogle, requestPhoneOtp, verifyPhoneOtp } =
+  const { signup, loginWithGoogle, requestPhoneOtp, signupWithPhone } =
     useAuthStore();
 
   const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
@@ -124,7 +124,7 @@ export default function SignupPage() {
     setError("");
 
     try {
-      await verifyPhoneOtp(formData.phone, formData.otp, formData.fullName);
+      await signupWithPhone(formData.phone, formData.otp, formData.fullName);
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid OTP. Please try again.");
