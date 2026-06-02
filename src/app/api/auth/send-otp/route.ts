@@ -19,10 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = createOtp(body.phone);
+  const result = await createOtp(body.phone);
 
-  return NextResponse.json(
-    { message: result.message, ...(result.devOtp ? { devOtp: result.devOtp } : {}) },
-    { status: result.status }
-  );
+  return NextResponse.json({ message: result.message }, { status: result.status });
 }

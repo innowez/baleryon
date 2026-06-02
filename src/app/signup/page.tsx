@@ -101,12 +101,8 @@ export default function SignupPage() {
     setError("");
 
     try {
-      const devOtp = await requestPhoneOtp(formData.phone);
-      setOtpInfo(
-        devOtp
-          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
-          : `We sent a 6-digit code to ${formData.phone}.`
-      );
+      await requestPhoneOtp(formData.phone);
+      setOtpInfo(`We sent a 6-digit code to ${formData.phone}.`);
       setPhoneStep("otp");
     } catch (err) {
       setError(

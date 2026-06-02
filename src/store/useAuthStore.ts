@@ -16,12 +16,6 @@ interface AuthResponse {
   token: string;
 }
 
-interface SendOtpResponse {
-  message: string;
-  /** Present only outside production so the flow is testable without SMS. */
-  devOtp?: string;
-}
-
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -30,8 +24,8 @@ interface AuthState {
   logout: () => void;
   signup: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  /** Request an OTP for the given phone number. Returns the dev OTP in non-prod. */
-  requestPhoneOtp: (phone: string) => Promise<string | undefined>;
+  /** Request an OTP to be sent via SMS to the given phone number. */
+  requestPhoneOtp: (phone: string) => Promise<void>;
   /** Register a new account with phone + OTP. */
   signupWithPhone: (
     phone: string,
@@ -95,10 +89,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       requestPhoneOtp: async (phone: string) => {
-        const data = await apiPost<SendOtpResponse>("/api/auth/send-otp", {
+        await apiPost<{ message: string }>("/api/auth/send-otp", {
           phone,
         });
-        return data.devOtp;
       },
 
       signupWithPhone: async (phone: string, otp: string, fullName: string) => {
