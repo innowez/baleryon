@@ -9,6 +9,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum AuthProvider {
@@ -101,14 +102,14 @@ model User {
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  role              Role?              @relation(fields: [roleId], references: [id])
-  addresses         Address[]
-  carts             Cart[]
-  wishlists         Wishlist[]
-  orders            Order[]
-  reviews           Review[]
-  notifications     Notification[]
-  analyticsEvents   AnalyticsEvent[]
+  role            Role?            @relation(fields: [roleId], references: [id])
+  addresses       Address[]
+  carts           Cart[]
+  wishlists       Wishlist[]
+  orders          Order[]
+  reviews         Review[]
+  notifications   Notification[]
+  analyticsEvents AnalyticsEvent[]
 
   @@map("users")
 }
@@ -191,13 +192,13 @@ model Product {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  category    Category?        @relation(fields: [categoryId], references: [id])
-  brand       Brand?           @relation(fields: [brandId], references: [id])
-  variants    ProductVariant[]
-  images      ProductImage[]
-  wishlists   Wishlist[]
-  reviews     Review[]
-  orderItems  OrderItem[]
+  category   Category?        @relation(fields: [categoryId], references: [id])
+  brand      Brand?           @relation(fields: [brandId], references: [id])
+  variants   ProductVariant[]
+  images     ProductImage[]
+  wishlists  Wishlist[]
+  reviews    Review[]
+  orderItems OrderItem[]
 
   @@index([slug])
   @@map("products")
@@ -216,11 +217,11 @@ model ProductVariant {
   weight    Decimal? @db.Decimal(10, 2)
   createdAt DateTime @default(now()) @map("created_at")
 
-  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  images         ProductImage[]
-  inventoryLogs  InventoryLog[]
-  cartItems      CartItem[]
-  orderItems     OrderItem[]
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  inventoryLogs InventoryLog[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
 
   @@index([productId])
   @@map("product_variants")
@@ -299,24 +300,24 @@ model Wishlist {
 // ─── 7. Orders & Items ───────────────────────────────────────────────────────
 
 model Order {
-  id              String        @id @default(uuid()) @db.Uuid
-  userId          String        @map("user_id") @db.Uuid
-  orderNumber     String        @unique @map("order_number") @db.VarChar(50)
-  addressId       String?       @map("address_id") @db.Uuid
-  subtotal        Decimal?      @db.Decimal(10, 2)
-  discountAmount  Decimal?      @map("discount_amount") @db.Decimal(10, 2)
-  shippingAmount  Decimal?      @map("shipping_amount") @db.Decimal(10, 2)
-  totalAmount     Decimal?      @map("total_amount") @db.Decimal(10, 2)
-  paymentStatus   PaymentStatus @default(PENDING) @map("payment_status")
-  orderStatus     OrderStatus   @default(PENDING) @map("order_status")
-  paymentMethod   String?       @map("payment_method") @db.VarChar(50)
-  notes           String?
-  placedAt        DateTime      @default(now()) @map("placed_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  orderNumber    String        @unique @map("order_number") @db.VarChar(50)
+  addressId      String?       @map("address_id") @db.Uuid
+  subtotal       Decimal?      @db.Decimal(10, 2)
+  discountAmount Decimal?      @map("discount_amount") @db.Decimal(10, 2)
+  shippingAmount Decimal?      @map("shipping_amount") @db.Decimal(10, 2)
+  totalAmount    Decimal?      @map("total_amount") @db.Decimal(10, 2)
+  paymentStatus  PaymentStatus @default(PENDING) @map("payment_status")
+  orderStatus    OrderStatus   @default(PENDING) @map("order_status")
+  paymentMethod  String?       @map("payment_method") @db.VarChar(50)
+  notes          String?
+  placedAt       DateTime      @default(now()) @map("placed_at")
 
-  user     User        @relation(fields: [userId], references: [id])
-  address  Address?    @relation(fields: [addressId], references: [id])
-  items    OrderItem[]
-  payments Payment[]
+  user      User        @relation(fields: [userId], references: [id])
+  address   Address?    @relation(fields: [addressId], references: [id])
+  items     OrderItem[]
+  payments  Payment[]
   shipments Shipment[]
 
   @@index([userId])
@@ -333,10 +334,10 @@ model OrderItem {
   unitPrice   Decimal @map("unit_price") @db.Decimal(10, 2)
   totalPrice  Decimal @map("total_price") @db.Decimal(10, 2)
 
-  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product  Product?        @relation(fields: [productId], references: [id])
-  variant  ProductVariant? @relation(fields: [variantId], references: [id])
-  returns  OrderReturn[]
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+  returns OrderReturn[]
 
   @@map("order_items")
 }
@@ -442,29 +443,29 @@ model Notification {
 // ─── 14. CMS / Landing Page ──────────────────────────────────────────────────
 
 model Banner {
-  id           String   @id @default(uuid()) @db.Uuid
-  imageUrl     String?  @map("image_url")
-  topContent   String?  @map("top_content") @db.Text
-  mainContent  String?  @map("main_content") @db.Text
-  lastContent  String?  @map("last_content") @db.Text
-  shopNowLink  String?  @map("shop_now_link") @db.VarChar(500)
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  imageUrl    String?  @map("image_url")
+  topContent  String?  @map("top_content") @db.Text
+  mainContent String?  @map("main_content") @db.Text
+  lastContent String?  @map("last_content") @db.Text
+  shopNowLink String?  @map("shop_now_link") @db.VarChar(500)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("banners")
 }
 
 model LimitedSeason {
-  id                  String   @id @default(uuid()) @db.Uuid
-  mainContent         String?  @map("main_content") @db.Text
-  description         String?  @db.Text
-  timeCountingHours   Int      @default(3) @map("time_counting_hours")
-  ctaLink             String?  @map("cta_link") @db.VarChar(500)
-  backgroundImageUrl  String?  @map("background_image_url")
-  isActive            Boolean  @default(true) @map("is_active")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  mainContent        String?  @map("main_content") @db.Text
+  description        String?  @db.Text
+  timeCountingHours  Int      @default(3) @map("time_counting_hours")
+  ctaLink            String?  @map("cta_link") @db.VarChar(500)
+  backgroundImageUrl String?  @map("background_image_url")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@map("limited_seasons")
 }

@@ -1,12 +1,19 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
 
+// const API_BASE_URL =
+//   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+//   "https://baleryon-production.up.railway.app";
+
 export function getApiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(getApiUrl(path), {
     ...init,
     headers: {
@@ -39,7 +46,7 @@ export interface ApiUser {
 /** Convenience POST helper used by the auth store. */
 export async function apiPost<T>(
   path: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<T> {
   return apiFetch<T>(path, {
     method: "POST",

@@ -1,16 +1,98 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import Image from "next/image";
-import { ArrowLeft, Plus, Edit2, Trash2, MapPin, CreditCard } from "lucide-react";
+// import Image from "next/image";
+import {
+  ArrowLeft,
+  Plus,
+  Edit2,
+  Trash2,
+  MapPin,
+  CreditCard,
+} from "lucide-react";
 import Link from "next/link";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { AddressForm } from "@/components/AddressForm";
+import { createOrder } from "@/lib/orderApi";
+import {
+  // loadRazorpayScript,
+  // RazorpayFailedResponse,
+  RazorpayInstance,
+  RazorpayOptions,
+  // RazorpayResponse,
+} from "@/lib/razorpay";
+import GuestAuth from "./GuestAuth";
+import { useCheckoutStore } from "@/store/useCheckoutStore";
+import { apiPost } from "@/lib/api";
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+export {};
+
+type DirectBuyItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
+
+type RazorpayFailedError = {
+  code: string;
+  description: string;
+  source: string;
+  step: string;
+  reason: string;
+};
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart } = useCartStore();
+  // const { user } = useAuthStore();
+  const { user, isLoggedIn } = useAuthStore();
+  const { items: cartItems, clearCart } = useCartStore();
+  const buyNowItem = useCheckoutStore((s) => s.buyNowItem);
+  const clearBuyNowItem = useCheckoutStore((s) => s.clearBuyNowItem);
+
+  const fetchAddresses = useAddressStore((state) => state.fetchAddresses);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchAddresses(user.id);
+    }
+  }, [user?.id, fetchAddresses]);
+
+  const items = buyNowItem
+    ? [
+        {
+          id: buyNowItem.productId,
+          name: buyNowItem.name,
+          price: buyNowItem.price,
+          quantity: buyNowItem.quantity,
+          image: buyNowItem.image,
+        },
+      ]
+    : cartItems;
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+
+  const shipping = 0;
+  const tax = 0;
+  const totalPrice = subtotal + shipping + tax;
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
   const {
     addresses,
     selectedAddressId,
@@ -20,9 +102,85 @@ export default function CheckoutPage() {
   } = useAddressStore();
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const selectedAddress = getSelectedAddress();
   const isAddressSelected = selectedAddressId !== null;
+
+  const handlePlaceOrder = async () => {
+    try {
+      if (!selectedAddress || !selectedPayment) return;
+
+      setIsPlacingOrder(true);
+
+      const result = await createOrder({
+        userId: user?.id ?? null,
+        guest: !user?.id,
+        addressId: selectedAddress.id,
+        items,
+        totalAmount: totalPrice,
+        paymentMethod: selectedPayment,
+      });
+
+      alert(selectedPayment);
+
+      if (selectedPayment === "razorpay") {
+        if (!result?.razorpayOrder) {
+          throw new Error("Razorpay order not created");
+        }
+
+        const order = result.razorpayOrder;
+        // const order_id = result?.order;
+
+        const options: RazorpayOptions = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+          amount: order.amount,
+          currency: "INR",
+          name: "Balryon",
+          description: "Order Payment",
+          order_id: order.id,
+
+          handler: async (response) => {
+            await apiPost("/api/orders/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                // orderId: result.orderId,
+                orderId: result,
+              }),
+            });
+
+            clearCart();
+            clearBuyNowItem();
+          },
+
+          theme: { color: "#0F0F0F" },
+        };
+        console.log(
+          options,
+          "optionsoptionsoptionsoptionsoptionsoptionsoptions",
+        );
+        const rzp = new window.Razorpay(options);
+
+        rzp.on("payment.failed", (res: { error: RazorpayFailedError }) => {
+          console.error("Payment failed:", res.error);
+        });
+
+        rzp.open();
+        return;
+      }
+
+      clearCart();
+      clearBuyNowItem();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -66,6 +224,13 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {!isLoggedIn && (
+            <GuestAuth
+              onVerified={() => {
+                console.log("verified");
+              }}
+            />
+          )}
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Address Section */}
@@ -100,8 +265,12 @@ export default function CheckoutPage() {
                             {address.fullName}
                           </p>
                           <p className="text-xs sm:text-sm text-[#6B7280] mt-1">
-                            {address.street}, {address.city}, {address.state}{" "}
-                            {address.zipCode}
+                            {address.addressLine1}
+                            {address.addressLine2
+                              ? `, ${address.addressLine2}`
+                              : ""}
+                            {address.landmark ? `, ${address.landmark}` : ""},{" "}
+                            {address.city}, {address.state} {address.postalCode}
                           </p>
                           <p className="text-xs sm:text-sm text-[#6B7280] mt-1">
                             Phone: {address.phone}
@@ -117,9 +286,10 @@ export default function CheckoutPage() {
                             <Edit2 size={16} />
                           </button>
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              deleteAddress(address.id);
+
+                              await deleteAddress(address.id);
                             }}
                             className="p-2 hover:bg-[#FFE5E5] rounded-lg transition-colors text-[#FF3B30]"
                           >
@@ -137,7 +307,8 @@ export default function CheckoutPage() {
                 onClick={() => setShowAddressForm(true)}
                 className="w-full border-2 border-dashed border-[#D1D5DB] py-3 rounded-xl font-semibold text-[#6B7280] hover:border-[#0F0F0F] hover:text-[#0F0F0F] transition-colors flex items-center justify-center gap-2"
               >
-                <Plus size={18} /> {addresses.length === 0 ? "Add Address" : "Add Another Address"}
+                <Plus size={18} />{" "}
+                {addresses.length === 0 ? "Add Address" : "Add Another Address"}
               </button>
             </motion.div>
 
@@ -282,9 +453,19 @@ export default function CheckoutPage() {
               <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                 {items.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-[#6B7280]">
-                      {item.name.substring(0, 20)}... × {item.quantity}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                      )}
+
+                      <span className="text-[#6B7280]">
+                        {item.name.substring(0, 20)}... × {item.quantity}
+                      </span>
+                    </div>
                     <span className="font-semibold">
                       ₹{(item.price * item.quantity).toLocaleString()}
                     </span>
@@ -296,7 +477,7 @@ export default function CheckoutPage() {
               <div className="space-y-2 border-t border-[#E5E5E5] pt-4 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#6B7280]">Subtotal</span>
-                  <span>₹{totalPrice.toLocaleString()}</span>
+                  <span>₹{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-[#6B7280]">Shipping</span>
@@ -320,20 +501,19 @@ export default function CheckoutPage() {
 
               {/* Place Order Button */}
               <motion.button
-                disabled={!isAddressSelected || !selectedPayment}
-                onClick={() => {
-                  if (selectedPayment === "razorpay") {
-                    console.log("Processing Razorpay payment");
-                  }
-                  clearCart();
-                }}
+                disabled={
+                  !isAddressSelected || !selectedPayment || isPlacingOrder
+                }
+                onClick={handlePlaceOrder}
                 className="w-full bg-[#0F0F0F] text-white py-3 rounded-xl font-semibold hover:bg-[#0F0F0F]/90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
               >
-                {!isAddressSelected
-                  ? "Add Address First"
-                  : !selectedPayment
-                    ? "Select Payment Method"
-                    : "Place Order"}
+                {isPlacingOrder
+                  ? "Processing..."
+                  : !isAddressSelected
+                    ? "Add Address First"
+                    : !selectedPayment
+                      ? "Select Payment Method"
+                      : "Place Order"}
               </motion.button>
 
               <p className="text-xs text-[#6B7280] text-center mt-3">

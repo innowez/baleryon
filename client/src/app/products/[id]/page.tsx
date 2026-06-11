@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useBuyNowStore } from "@/store/useBuyNowStore";
 import { notFound } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { Heart } from "lucide-react";
@@ -25,6 +27,8 @@ import CustomerReviews from "@/components/pdp/CustomerReviews";
 import RelatedProducts from "@/components/pdp/RelatedProducts";
 import MobileStickyBar from "@/components/pdp/MobileStickyBar";
 import type { Product } from "@/types/product";
+import { useCheckoutStore } from "@/store/useCheckoutStore";
+import { toast } from "sonner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,11 +42,17 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const [sizeError, setSizeError] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStartIndex, setModalStartIndex] = useState(0);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  // const [buyNowItem,setBuyNowItem] = useState(false);
+
+  const router = useRouter();
+
+  const setBuyNowItem = useCheckoutStore((s) => s.setBuyNowItem);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +77,11 @@ export default function ProductDetailPage({ params }: PageProps) {
       cancelled = true;
     };
   }, [id]);
+
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    setSizeError(false);
+  };
 
   const addItem = useCartStore((s) => s.addItem);
   const { isFavorited, addToWishlist, removeFromWishlist } = useWishlistStore();
@@ -95,6 +110,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const handleAddToCart = () => {
     if (!selectedSize && product.sizes[0] !== "One Size") {
+      toast.error("Please select a size");
       return;
     }
     addItem({
@@ -109,7 +125,23 @@ export default function ProductDetailPage({ params }: PageProps) {
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
+    if (!selectedSize && product.sizes[0] !== "One Size") {
+      toast.error("Please select a size");
+      return;
+    }
+
+    setBuyNowItem({
+      productId: product.id,
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      quantity,
+      size: selectedSize,
+      color: selectedColor,
+    });
+
+    router.push("/checkout");
   };
 
   const handleWishlistToggle = () => {
@@ -135,7 +167,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   const discountPct =
     product.originalPrice > 0
       ? Math.round(
-          ((product.originalPrice - product.price) / product.originalPrice) * 100
+          ((product.originalPrice - product.price) / product.originalPrice) *
+            100,
         )
       : 0;
 
@@ -181,7 +214,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                   ))}
                 </div>
                 <span className="text-[#6B7280] font-medium">
-                  {product.rating.toFixed(1)} · {product.reviews.toLocaleString()} Reviews
+                  {product.rating.toFixed(1)} ·{" "}
+                  {product.reviews.toLocaleString()} Reviews
                 </span>
               </div>
 
@@ -207,7 +241,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <div>
                   <label className="text-sm font-semibold text-[#0F0F0F] mb-3 block">
                     Color:{" "}
-                    <span className="font-normal text-[#6B7280]">{selectedColor}</span>
+                    <span className="font-normal text-[#6B7280]">
+                      {selectedColor}
+                    </span>
                   </label>
                   <ColorSelector
                     colors={product.colors}
@@ -220,7 +256,8 @@ export default function ProductDetailPage({ params }: PageProps) {
               <SizeSelector
                 sizes={product.sizes}
                 selected={selectedSize}
-                onChange={setSelectedSize}
+                // onChange={setSelectedSize}
+                onChange={handleSizeChange}
                 onOpenGuide={() => setIsSizeGuideOpen(true)}
               />
 
@@ -237,7 +274,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <button
                   onClick={handleBuyNow}
                   className="button-secondary flex-1 h-12 text-base"
-                  disabled={!selectedSize && product.sizes[0] !== "One Size"}
+                  // disabled={!selectedSize && product.sizes[0] !== "One Size"}
                 >
                   Buy Now
                 </button>
@@ -259,12 +296,18 @@ export default function ProductDetailPage({ params }: PageProps) {
               <DeliveryChecker />
               <TrustIndicators />
               <ProductAccordion product={product} />
-              <CustomerReviews rating={product.rating} reviewCount={product.reviews} />
+              <CustomerReviews
+                rating={product.rating}
+                reviewCount={product.reviews}
+              />
             </div>
           </div>
 
           <div className="mt-20">
-            <RelatedProducts currentProductId={product.id} category={product.category} />
+            <RelatedProducts
+              currentProductId={product.id}
+              category={product.category}
+            />
           </div>
         </div>
       </main>

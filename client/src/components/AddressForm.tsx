@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useAddressStore, Address } from "@/store/useAddressStore";
 import { X } from "lucide-react";
 import { motion } from "motion/react";
+import { AddressInput } from "@/lib/addressApi";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface AddressFormProps {
   onClose: () => void;
@@ -11,14 +13,20 @@ interface AddressFormProps {
 }
 
 export function AddressForm({ onClose, address }: AddressFormProps) {
+  console.log(
+    address,
+    "addressaddressaddressaddressaddressaddressaddressaddress",
+  );
+
+  const { user } = useAuthStore();
   const { addAddress, updateAddress } = useAddressStore();
   const [formData, setFormData] = useState({
     fullName: address?.fullName || "",
     phone: address?.phone || "",
-    street: address?.street || "",
+    addressLine1: address?.addressLine1 || "",
     city: address?.city || "",
     state: address?.state || "",
-    zipCode: address?.zipCode || "",
+    postalCode: address?.postalCode || "",
     country: address?.country || "India",
     isDefault: address?.isDefault || false,
   });
@@ -42,30 +50,68 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   if (!validateForm()) return;
+
+  //   if (address) {
+  //     updateAddress(address.id, formData);
+  //   } else {
+  //     addAddress({
+  //       userId: user!.id,
+  //       fullName: formData.fullName,
+  //       phone: formData.phone,
+  //       addressLine1: formData.addressLine1,
+  //       city: formData.city,
+  //       state: formData.state,
+  //       postalCode: formData.postalCode,
+  //       country: formData.country,
+  //       isDefault: formData.isDefault,
+  //     });
+  //   }
+
+  //   onClose();
+  // };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
+    const payload: AddressInput = {
+      userId: user!.id,
+      fullName: formData.fullName,
+      phone: formData.phone,
+      addressLine1: formData.addressLine1,
+      city: formData.city,
+      state: formData.state,
+      postalCode: formData.postalCode,
+      country: formData.country,
+      isDefault: formData.isDefault,
+    };
+
     if (address) {
-      updateAddress(address.id, formData);
+      await updateAddress(address.id, payload);
     } else {
-      addAddress({ ...formData, id: "", createdAt: 0 } as any);
+      console.log(
+        payload,
+        "payloadpayloadpayloadpayloadpayloadpayloadpayloadpayload",
+      );
+
+      await addAddress(payload);
     }
 
     onClose();
   };
-
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -100,7 +146,9 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Full Name</label>
+            <label className="block text-sm font-semibold mb-2">
+              Full Name
+            </label>
             <input
               type="text"
               name="fullName"
