@@ -11,6 +11,7 @@ import userManagmentRouter from "./routes/userManagmentRouter.js";
 import catalogRouter from "./routes/catalogRouter.js";
 import cmsRouter from "./routes/cmsRouter.js";
 import orderRouter from "./routes/orderRoutes.js";
+import orderTrackingRouter from "./routes/orderTrackerRouter.js";
 import addressesRouter from "./routes/addressRoutes.js"
 
 import authRouter from "./routes/authRouter.js";
@@ -45,7 +46,10 @@ app.use("/api/admin/product/", productRouter);
 app.use("/api/admin/catalog/", catalogRouter);
 app.use("/api/admin/cms/", cmsRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/viewOrders", orderTrackingRouter);
+
 app.use("/api/addresses", addressesRouter);
+
 
 // user managment router
 app.use("/api/admin/userManagment/", userManagmentRouter);

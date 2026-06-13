@@ -19,7 +19,7 @@ export function AnnouncementBar() {
     if (!track) return;
 
     let start: number | null = null;
-    const speed = 0.4; // px per ms
+    const speed = 0.11; // px per ms
     let raf: number;
     let offset = 0;
 
