@@ -12,7 +12,13 @@ import catalogRouter from "./routes/catalogRouter.js";
 import cmsRouter from "./routes/cmsRouter.js";
 import orderRouter from "./routes/orderRoutes.js";
 import orderTrackingRouter from "./routes/orderTrackerRouter.js";
-import addressesRouter from "./routes/addressRoutes.js"
+import addressesRouter from "./routes/addressRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js"
+import reviewRoutes from "./routes/reviewRoutes.js"
+import deliveryRoutes from "./routes/deliveryRouter.js"
+
+
+
 
 import authRouter from "./routes/authRouter.js";
 import sanitizedConfig from "./config.js";
@@ -47,6 +53,10 @@ app.use("/api/admin/catalog/", catalogRouter);
 app.use("/api/admin/cms/", cmsRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/viewOrders", orderTrackingRouter);
+app.use("/api/profile", profileRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/delivery", deliveryRoutes);
+
 
 app.use("/api/addresses", addressesRouter);
 

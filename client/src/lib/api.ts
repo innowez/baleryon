@@ -1,9 +1,9 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
-
 // const API_BASE_URL =
-//   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-//   "https://baleryon-production.up.railway.app";
+  // process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "https://baleryon-production.up.railway.app";
 
 export function getApiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;

@@ -27,6 +27,7 @@ import {
 import GuestAuth from "./GuestAuth";
 import { useCheckoutStore } from "@/store/useCheckoutStore";
 import { apiPost } from "@/lib/api";
+import { Address } from "@/lib/addressApi";
 declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
@@ -101,11 +102,19 @@ export default function CheckoutPage() {
     getSelectedAddress,
   } = useAddressStore();
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<string | "razorpay">(
+    "razorpay",
+  );
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
   const selectedAddress = getSelectedAddress();
   const isAddressSelected = selectedAddressId !== null;
+
+  console.log(
+    addresses,
+    "addressesaddressesaddressesaddressesaddressesaddresses",
+  );
 
   const handlePlaceOrder = async () => {
     try {
@@ -282,7 +291,14 @@ export default function CheckoutPage() {
                           )}
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
-                          <button className="p-2 hover:bg-[#E5E5E5] rounded-lg transition-colors">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAddress(address as Address);
+                              setShowAddressForm(true);
+                            }}
+                            className="p-2 hover:bg-[#E5E5E5] rounded-lg transition-colors"
+                          >
                             <Edit2 size={16} />
                           </button>
                           <button
@@ -313,22 +329,22 @@ export default function CheckoutPage() {
             </motion.div>
 
             {/* Payment Section */}
-            {isAddressSelected && (
+            {/* {isAddressSelected && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="bg-white rounded-2xl p-4 sm:p-6"
-              >
-                <div className="flex items-center gap-2 mb-4">
+              > */}
+            {/* <div className="flex items-center gap-2 mb-4">
                   <CreditCard size={20} className="text-[#FF3B30]" />
                   <h2 className="text-lg font-bold">Payment Method</h2>
-                </div>
+                </div> */}
 
-                {/* Payment Options */}
-                <div className="space-y-3">
-                  {/* Razorpay */}
-                  <motion.button
+            {/* Payment Options */}
+            {/* <div className="space-y-3"> */}
+            {/* Razorpay */}
+            {/* <motion.button
                     layout
                     onClick={() => setSelectedPayment("razorpay")}
                     className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
@@ -361,10 +377,10 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     </div>
-                  </motion.button>
+                  </motion.button> */}
 
-                  {/* Pay via Card */}
-                  <motion.button
+            {/* Pay via Card */}
+            {/* <motion.button
                     layout
                     onClick={() => setSelectedPayment("card")}
                     className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
@@ -397,10 +413,10 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     </div>
-                  </motion.button>
+                  </motion.button> */}
 
-                  {/* UPI */}
-                  <motion.button
+            {/* UPI */}
+            {/* <motion.button
                     layout
                     onClick={() => setSelectedPayment("upi")}
                     className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
@@ -433,10 +449,10 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     </div>
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
+                  </motion.button> */}
+            {/* </div>
+              </motion.div> */}
+            {/* )} */}
           </div>
 
           {/* Order Summary */}
@@ -525,7 +541,14 @@ export default function CheckoutPage() {
       </div>
 
       {showAddressForm && (
-        <AddressForm onClose={() => setShowAddressForm(false)} />
+        <AddressForm
+          key={editingAddress?.id ?? "new-address"}
+          address={editingAddress}
+          onClose={() => {
+            setShowAddressForm(false);
+            setEditingAddress(null);
+          }}
+        />
       )}
     </div>
   );

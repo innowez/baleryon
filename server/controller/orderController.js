@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
+import { checkDeliveryAvailability } from "../services/delhiveryService.js";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -114,7 +115,29 @@ export const createOrderController = asyncHandler(async (req, res) => {
 
   // ── Validate ───────────────────────────────────────────────
   if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: "Order must have at least one item" });
+    return res
+      .status(400)
+      .json({ message: "Order must have at least one item" });
+  }
+
+  // Get address
+  const address = await prisma.address.findUnique({
+    where: { id: addressId },
+  });
+
+  if (!address) {
+    return res.status(404).json({
+      message: "Address not found",
+    });
+  }
+
+  // Check delivery availability
+  const deliveryCheck = await checkDeliveryAvailability(address.postalCode);
+
+  if (!deliveryCheck.available) {
+    return res.status(400).json({
+      message: "Delivery not available for this pincode",
+    });
   }
 
   // ── Determine if frontend sends productId or variantId ─────
@@ -124,10 +147,8 @@ export const createOrderController = asyncHandler(async (req, res) => {
   let orderItemsData;
 
   if (useVariant) {
-    // ── Path A: items have variantId ───────────────────────
-    const variantIds = items
-      .map((item) => item.variantId)
-      .filter(Boolean); // filter out any undefined
+    // ...── Path A: items have variantId ────────────....
+    const variantIds = items.map((item) => item.variantId).filter(Boolean); // filter out any undefined
 
     const variants = await prisma.productVariant.findMany({
       where: { id: { in: variantIds } },
@@ -135,7 +156,9 @@ export const createOrderController = asyncHandler(async (req, res) => {
     });
 
     if (variants.length !== variantIds.length) {
-      return res.status(400).json({ message: "One or more variants not found" });
+      return res
+        .status(400)
+        .json({ message: "One or more variants not found" });
     }
 
     const variantMap = new Map(variants.map((v) => [v.id, v]));
@@ -144,50 +167,47 @@ export const createOrderController = asyncHandler(async (req, res) => {
       const variant = variantMap.get(item.variantId);
       const unitPrice = parseFloat(
         variant.salePrice ??
-        variant.price ??
-        variant.product.salePrice ??
-        variant.product.basePrice
+          variant.price ??
+          variant.product.salePrice ??
+          variant.product.basePrice,
       );
 
       return {
-        productId:   variant.productId,
-        variantId:   variant.id,
+        productId: variant.productId,
+        variantId: variant.id,
         productName: variant.product.title,
-        quantity:    item.quantity,
+        quantity: item.quantity,
         unitPrice,
-        totalPrice:  unitPrice * item.quantity,
+        totalPrice: unitPrice * item.quantity,
       };
     });
-
   } else {
     // ── Path B: items have product id (no variant selected) ─
-    const productIds = items
-      .map((item) => item.id)
-      .filter(Boolean);
+    const productIds = items.map((item) => item.id).filter(Boolean);
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
     });
 
     if (products.length !== productIds.length) {
-      return res.status(400).json({ message: "One or more products not found" });
+      return res
+        .status(400)
+        .json({ message: "One or more products not found" });
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     orderItemsData = items.map((item) => {
       const product = productMap.get(item.id);
-      const unitPrice = parseFloat(
-        product.salePrice ?? product.basePrice
-      );
+      const unitPrice = parseFloat(product.salePrice ?? product.basePrice);
 
       return {
-        productId:   product.id,
-        variantId:   null,       // no variant
+        productId: product.id,
+        variantId: null, // no variant
         productName: product.title,
-        quantity:    item.quantity,
+        quantity: item.quantity,
         unitPrice,
-        totalPrice:  unitPrice * item.quantity,
+        totalPrice: unitPrice * item.quantity,
       };
     });
   }
@@ -217,10 +237,10 @@ export const createOrderController = asyncHandler(async (req, res) => {
 
     await tx.payment.create({
       data: {
-        orderId:        newOrder.id,
+        orderId: newOrder.id,
         paymentGateway: "razorpay",
-        paymentStatus:  "PENDING",
-        amount:         totalAmount,
+        paymentStatus: "PENDING",
+        amount: totalAmount,
       },
     });
 
@@ -229,15 +249,15 @@ export const createOrderController = asyncHandler(async (req, res) => {
 
   // ── Create Razorpay order ──────────────────────────────────
   const razorpayOrder = await razorpay.orders.create({
-    amount:   Math.round(totalAmount * 100),
+    amount: Math.round(totalAmount * 100),
     currency: "INR",
-    receipt:  order.id,
+    receipt: order.id,
   });
 
   // ── Store Razorpay transaction ID ──────────────────────────
   await prisma.payment.updateMany({
     where: { orderId: order.id },
-    data:  { transactionId: razorpayOrder.id },
+    data: { transactionId: razorpayOrder.id },
   });
 
   res.status(200).json({ order, razorpayOrder });

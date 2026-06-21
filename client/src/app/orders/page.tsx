@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 
 import type { Order } from "@/types/order";
+import { OrderProductReviewRow } from "./OrderProductReviewRow";
 
 const statusColor: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
@@ -82,9 +83,7 @@ export default function OrdersPage() {
                     {/* Top Row */}
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-sm text-[#6B7280]">
-                          Order
-                        </p>
+                        <p className="text-sm text-[#6B7280]">Order</p>
                         <h3 className="font-semibold text-lg group-hover:text-black">
                           #{order.orderNumber}
                         </h3>
@@ -96,7 +95,7 @@ export default function OrdersPage() {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
-                            }
+                            },
                           )}
                         </p>
                       </div>
@@ -137,10 +136,15 @@ export default function OrdersPage() {
                         )}
                       </div>
 
-                      <p className="text-sm text-[#6B7280]">
+                      {/* <p className="text-sm text-[#6B7280]">
                         {order.items.length} item
                         {order.items.length > 1 ? "s" : ""}
-                      </p>
+                      </p> */}
+                      <div className="mt-6 space-y-4">
+                        {order.items.map((item) => (
+                          <OrderProductReviewRow key={item.id} item={item} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </Link>

@@ -30,7 +30,7 @@ export function BottomNav() {
     { id: "products", icon: Package, label: "Products", href: "/products" },
     { id: "wishlist", icon: Heart, label: "Wishlist", href: "/wishlist", badge: wishlistCount },
     { id: "cart", icon: ShoppingBag, label: "Cart", href: "#", badge: cartCount, onClick: () => setCartDialogOpen(true) },
-    { id: "profile", icon: User, label: "Profile", href: "#" },
+    { id: "profile", icon: User, label: "Profile", href: "/profile" },
   ];
 
   const getActiveTab = () => {

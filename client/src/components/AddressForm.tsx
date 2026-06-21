@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useAddressStore, Address } from "@/store/useAddressStore";
 import { X } from "lucide-react";
 import { motion } from "motion/react";
-import { AddressInput } from "@/lib/addressApi";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface AddressFormProps {
   onClose: () => void;
-  address?: Address;
+  address?: Address | null;
 }
 
 export function AddressForm({ onClose, address }: AddressFormProps) {
@@ -20,35 +19,57 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
 
   const { user } = useAuthStore();
   const { addAddress, updateAddress } = useAddressStore();
-  const [formData, setFormData] = useState({
-    fullName: address?.fullName || "",
-    phone: address?.phone || "",
-    addressLine1: address?.addressLine1 || "",
-    city: address?.city || "",
-    state: address?.state || "",
-    postalCode: address?.postalCode || "",
-    country: address?.country || "India",
-    isDefault: address?.isDefault || false,
+
+  const getInitialFormData = (address?: Address | null) => ({
+    fullName: address?.fullName ?? "",
+    phone: address?.phone ?? "",
+    addressLine1: address?.addressLine1 ?? "",
+    addressLine2: address?.addressLine2 ?? "",
+    landmark: address?.landmark ?? "",
+    city: address?.city ?? "",
+    state: address?.state ?? "",
+    country: address?.country ?? "India",
+    postalCode: address?.postalCode ?? "",
+    isDefault: address?.isDefault ?? false,
   });
+
+  const [formData, setFormData] = useState(() => getInitialFormData(address));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  //  useEffect(() => {
+  //   if (address) {
+  //     setFormData({
+  //       fullName: address.fullName,
+  //       phone: address.phone,
+  //       addressLine1: address.addressLine1,
+  //       addressLine2: address.addressLine2 || "",
+  //       landmark: address.landmark || "",
+  //       city: address.city,
+  //       state: address.state,
+  //       country: address.country,
+  //       postalCode: address.postalCode,
+  //       isDefault: address?.isDefault || false,
+  //     });
+  //   }
+  // }, [address]);
 
-    if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
-    if (!/^\d{10}$/.test(formData.phone))
-      newErrors.phone = "Phone must be 10 digits";
-    if (!formData.street.trim()) newErrors.street = "Address is required";
-    if (!formData.city.trim()) newErrors.city = "City is required";
-    if (!formData.state.trim()) newErrors.state = "State is required";
-    if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required";
-    if (!/^\d{6}$/.test(formData.zipCode))
-      newErrors.zipCode = "ZIP code must be 6 digits";
+  // const validateForm = () => {
+  //   const newErrors: Record<string, string> = {};
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  //   if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
+  //   if (!formData.phone.trim()) newErrors.phone = "Phone is required";
+  //   if (!/^\d{10}$/.test(formData.phone))
+  //     newErrors.phone = "Phone must be 10 digits";
+  //   if (!formData.street.trim()) newErrors.street = "Address is required";
+  //   if (!formData.city.trim()) newErrors.city = "City is required";
+  //   if (!formData.state.trim()) newErrors.state = "State is required";
+  //   if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required";
+  //   if (!/^\d{6}$/.test(formData.zipCode))
+  //     newErrors.zipCode = "ZIP code must be 6 digits";
+
+  //   setErrors(newErrors);
+  //   return Object.keys(newErrors).length === 0;
+  // };
 
   // const handleSubmit = (e: React.FormEvent) => {
   //   e.preventDefault();
@@ -73,13 +94,51 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
 
   //   onClose();
   // };
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
+    if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
+
+    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
+
+    if (!/^\d{10}$/.test(formData.phone))
+      newErrors.phone = "Phone must be 10 digits";
+
+    if (!formData.addressLine1.trim())
+      newErrors.addressLine1 = "Address is required";
+
+    if (!formData.city.trim()) newErrors.city = "City is required";
+
+    if (!formData.state.trim()) newErrors.state = "State is required";
+
+    if (!formData.postalCode.trim())
+      newErrors.postalCode = "Postal code is required";
+
+    if (!/^\d{6}$/.test(formData.postalCode))
+      newErrors.postalCode = "Postal code must be 6 digits";
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    const payload: AddressInput = {
+    // const payload: AddressInput = {
+    //   userId: user!.id,
+    //   fullName: formData.fullName,
+    //   phone: formData.phone,
+    //   addressLine1: formData.addressLine1,
+    //   city: formData.city,
+    //   state: formData.state,
+    //   postalCode: formData.postalCode,
+    //   country: formData.country,
+    //   isDefault: formData.isDefault,
+    // };
+
+    const payload = {
       userId: user!.id,
       fullName: formData.fullName,
       phone: formData.phone,
@@ -188,11 +247,9 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
             </label>
             <input
               type="text"
-              name="street"
-              value={formData.street}
+              name="addressLine1"
+              value={formData.addressLine1}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="Enter street address"
             />
             {errors.street && (
               <p className="text-xs text-[#FF3B30] mt-1">{errors.street}</p>
@@ -236,8 +293,8 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
             <label className="block text-sm font-semibold mb-2">ZIP Code</label>
             <input
               type="text"
-              name="zipCode"
-              value={formData.zipCode}
+              name="postalCode"
+              value={formData.postalCode}
               onChange={handleChange}
               maxLength={6}
               className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"

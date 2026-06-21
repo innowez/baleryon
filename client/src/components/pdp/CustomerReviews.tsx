@@ -1,5 +1,9 @@
 "use client";
 
+import { fetchProductReviews } from "@/lib/reviewsApi";
+import { ProductReview } from "@/types/review";
+import { useEffect, useState } from "react";
+
 interface CustomerReviewsProps {
   rating: number;
   reviewCount: number;
@@ -32,20 +36,42 @@ const MOCK_REVIEWS = [
   },
 ];
 
+interface CustomerReviewsProps {
+  productId: string;
+}
 export default function CustomerReviews({
-  rating,
-  reviewCount,
+  productId,
 }: CustomerReviewsProps) {
-  const getRatingDistribution = () => {
-    const ratings = [5, 4, 3, 2, 1];
-    const distribution = [0.5, 0.3, 0.15, 0.03, 0.02];
-    return ratings.map((r, i) => ({
-      stars: r,
-      percentage: Math.round(distribution[i] * 100),
-    }));
-  };
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [rating, setRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [distribution, setDistribution] = useState<
+    { stars: number; count: number }[]
+  >([]);
 
-  const distribution = getRatingDistribution();
+  useEffect(() => {
+    fetchProductReviews(productId).then((data) => {
+      setReviews(data.reviews);
+      setRating(data.rating);
+      setReviewCount(data.reviewCount);
+      setDistribution(data.distribution);
+    });
+  }, [productId]);
+
+  // const getRatingDistribution = () => {
+  //   const ratings = [5, 4, 3, 2, 1];
+  //   const distribution = [0.5, 0.3, 0.15, 0.03, 0.02];
+  //   return ratings.map((r, i) => ({
+  //     stars: r,
+  //     percentage: Math.round(distribution[i] * 100),
+  //   }));
+  // };
+
+  const distributionPercentages = distribution.map((item) => ({
+    stars: item.stars,
+    percentage:
+      reviewCount === 0 ? 0 : Math.round((item.count / reviewCount) * 100),
+  }));
 
   return (
     <div className="space-y-6 border-t border-[#E5E5E5] pt-6">
@@ -71,7 +97,7 @@ export default function CustomerReviews({
           </div>
 
           <div className="flex-1 space-y-2">
-            {distribution.map((item) => (
+            {distributionPercentages.map((item) => (
               <div key={item.stars} className="flex items-center gap-2">
                 <span className="text-xs text-[#6B7280] w-8">
                   {item.stars}★
@@ -93,7 +119,7 @@ export default function CustomerReviews({
 
       {/* Individual Reviews */}
       <div className="space-y-4">
-        {MOCK_REVIEWS.map((review) => (
+        {reviews.map((review) => (
           <div
             key={review.id}
             className="p-4 border border-[#E5E5E5] rounded-xl space-y-3"
@@ -102,26 +128,29 @@ export default function CustomerReviews({
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-sm text-[#0F0F0F]">
-                    {review.name}
+                    {review.user.fullName}
                   </span>
-                  {review.verified && (
+                  {/* {review.verified && (
                     <span className="bg-green-50 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                       Verified Purchase
                     </span>
-                  )}
+                  )} */}
+                  <span className="bg-green-50 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                    Verified Purchase
+                  </span>
                 </div>
-                <p className="text-xs text-[#6B7280]">{review.date}</p>
+                <p className="text-xs text-[#6B7280]">
+                  {new Date(review.createdAt).toLocaleDateString()}
+                </p>
               </div>
               <div className="flex gap-0.5">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-sm text-yellow-400">
-                    {i < review.rating ? "★" : "☆"}
-                  </span>
+                  <span key={i}>{i < review.rating ? "★" : "☆"}</span>
                 ))}
               </div>
             </div>
             <p className="text-sm text-[#6B7280] leading-relaxed">
-              {review.body}
+              {review.review}
             </p>
           </div>
         ))}

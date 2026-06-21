@@ -396,19 +396,34 @@ model Review {
 // ─── 11. Shipping ────────────────────────────────────────────────────────────
 
 model Shipment {
-  id             String    @id @default(uuid()) @db.Uuid
-  orderId        String    @map("order_id") @db.Uuid
-  courierName    String?   @map("courier_name") @db.VarChar(100)
-  trackingNumber String?   @map("tracking_number")
-  trackingUrl    String?   @map("tracking_url")
-  shippedAt      DateTime? @map("shipped_at")
-  deliveredAt    DateTime? @map("delivered_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  orderId         String    @map("order_id") @db.Uuid
 
-  order Order @relation(fields: [orderId], references: [id])
+  courierName     String    @default("Delhivery")
 
-  @@map("shipments")
+  awbNumber       String?   @map("awb_number")
+  shipmentId      String?   @map("shipment_id")
+
+  pickupId        String?   @map("pickup_id")
+
+  labelUrl        String?   @map("label_url")
+  invoiceUrl      String?   @map("invoice_url")
+
+  status          String    @default("CREATED") // CREATED, PICKED_UP, IN_TRANSIT, DELIVERED, RTO
+
+  trackingUrl     String?
+
+  rawResponse     Json?    @map("raw_response") // VERY IMPORTANT for debugging
+
+  shippedAt       DateTime? @map("shipped_at")
+  pickedAt        DateTime? @map("picked_at")
+  deliveredAt     DateTime? @map("delivered_at")
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  order           Order     @relation(fields: [orderId], references: [id])
 }
-
 // ─── 12. Returns & Refunds ───────────────────────────────────────────────────
 
 model OrderReturn {

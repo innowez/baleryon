@@ -33,26 +33,28 @@ export function Header() {
     ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E5E5]"
     : "bg-transparent";
 
+  const bgClassLogo = isScrolled ? "/baleryon_logo.png" : "/baleryonWhite.png";
+
   return (
     <header
-      className={`fixed w-full z-40 transition-all duration-300 ${topPosition} ${bgClass}`}
+      className={`fixed w-full z-50 transition-all duration-300 ${topPosition} ${bgClass}`}
     >
       <div className="container-max">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <Image
-              src="/baleryon_logo.png"
+              src={`${bgClassLogo}`}
               alt="BALERYON"
-              width={36}
-              height={36}
-              className="object-contain"
+              width={`${isScrolled ? "78" : "100"}`}
+              height={`${isScrolled ? "78" : "100"}`}
+              className={`object-contain`}
             />
             <span
               className={`font-bold text-base sm:text-lg tracking-tight transition-colors ${iconColor}`}
               style={{ fontFamily: "var(--font-plus-jakarta)" }}
             >
-              BALERYON
+              {/* BALERYON */}
             </span>
           </Link>
 

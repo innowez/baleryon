@@ -296,10 +296,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <DeliveryChecker />
               <TrustIndicators />
               <ProductAccordion product={product} />
-              <CustomerReviews
-                rating={product.rating}
-                reviewCount={product.reviews}
-              />
+              <CustomerReviews productId={product.id} />
             </div>
           </div>
 

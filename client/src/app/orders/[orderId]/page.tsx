@@ -20,6 +20,9 @@ export default function OrderDetailsPage() {
   const [data, setData] = useState<OrderTrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+
+  console.log(data,"datadatadatadatadatadatadatadata");
+  
   useEffect(() => {
     if (!orderId) return;
 

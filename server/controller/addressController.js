@@ -1,7 +1,6 @@
 import asyncHandler from "express-async-handler";
 import prisma from "../lib/prisma.js";
 
-
 // CREATE ADDRESS
 export const createAddress = asyncHandler(async (req, res) => {
   const {
@@ -15,28 +14,53 @@ export const createAddress = asyncHandler(async (req, res) => {
     state,
     country,
     postalCode,
-    isDefault,
+    isDefault = false,
   } = req.body;
 
-  console.log(req.body,"=================================================================================================");
-  
+  // Validation
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "User ID is required",
+    });
+  }
+
+  if (!addressLine1) {
+    return res.status(400).json({
+      success: false,
+      message: "Address line 1 is required",
+    });
+  }
+
+  // If this address is default, remove default from other addresses
+  if (isDefault) {
+    await prisma.address.updateMany({
+      where: { userId },
+      data: { isDefault: false },
+    });
+  }
+
   const address = await prisma.address.create({
     data: {
       userId,
-      fullName,
-      phone,
+      fullName: fullName || null,
+      phone: phone || null,
       addressLine1,
-      addressLine2,
-      landmark,
-      city,
-      state,
-      country,
-      postalCode,
-      isDefault: isDefault || false,
+      addressLine2: addressLine2 || null,
+      landmark: landmark || null,
+      city: city || null,
+      state: state || null,
+      country: country || null,
+      postalCode: postalCode || null,
+      isDefault,
     },
   });
 
-  res.status(201).json(address);
+  res.status(201).json({
+    success: true,
+    message: "Address created successfully",
+    data: address,
+  });
 });
 
 // GET ALL ADDRESSES
