@@ -14,26 +14,34 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
+import { SearchBar } from "./SearchButton";
 
-export function Header() {
+interface HeaderProps {
+  variant?: "transparent" | "solid"; // "transparent" = hero page, "solid" = all others
+}
+
+export function Header({ variant = "transparent" }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const { isLoggedIn, user, logout } = useAuthStore();
   const { totalItems: cartCount } = useCartStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
+    if (variant === "solid") return; // skip scroll listener on non-hero pages
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [variant]);
 
-  const iconColor = isScrolled ? "text-[#0F0F0F]" : "text-white";
-  const topPosition = isScrolled ? "top-0" : "top-10";
-  const bgClass = isScrolled
+  // On solid pages, always behave as if scrolled
+  const dark = variant === "solid" || isScrolled;
+
+  const iconColor = dark ? "text-[#0F0F0F]" : "text-white";
+  const topPosition = dark ? "top-0" : "top-10";
+  const bgClass = dark
     ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E5E5]"
     : "bg-transparent";
-
-  const bgClassLogo = isScrolled ? "/baleryon_logo.png" : "/baleryonWhite.png";
+  const bgClassLogo = dark ? "/baleryon_logo.png" : "/baleryonWhite.png";
 
   return (
     <header
@@ -44,40 +52,49 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <Image
-              src={`${bgClassLogo}`}
+              src={bgClassLogo}
               alt="BALERYON"
-              width={`${isScrolled ? "78" : "100"}`}
-              height={`${isScrolled ? "78" : "100"}`}
-              className={`object-contain`}
+              width={dark ? 78 : 100}
+              height={dark ? 78 : 100}
+              className="object-contain"
             />
-            <span
-              className={`font-bold text-base sm:text-lg tracking-tight transition-colors ${iconColor}`}
-              style={{ fontFamily: "var(--font-plus-jakarta)" }}
-            >
-              {/* BALERYON */}
-            </span>
           </Link>
+
+          
 
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Search — always visible */}
-            <button
+            {/* Search */}
+            {/* <button
               aria-label="Search"
               className={`p-2.5 rounded-xl transition-colors touch-manipulation ${
-                isScrolled
+                dark
                   ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
                   : "hover:bg-white/20 text-white"
               }`}
             >
               <Search size={20} strokeWidth={1.8} />
-            </button>
+            </button> */}
+            <div className="flex items-center gap-5 pr-7">
+            <Link href={'/products'} className={`text-base ${
+                  dark
+                    ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
+                    : "hover:bg-white/20 text-white"
+                }`}>Product</Link>
+            <Link href={'/products'} className={`text-base ${
+                  dark
+                    ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
+                    : "hover:bg-white/20 text-white"
+                }`}>Collections</Link>
+          </div>
+            <SearchBar dark={dark} />
             <div className="hidden sm:flex items-center gap-1 sm:gap-2">
               {/* Wishlist */}
               <Link
                 href="/wishlist"
                 aria-label="Wishlist"
                 className={`p-2.5 rounded-xl transition-colors ${
-                  isScrolled
+                  dark
                     ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
                     : "hover:bg-white/20 text-white"
                 }`}
@@ -90,27 +107,27 @@ export function Header() {
                 href="/cart"
                 aria-label="Cart"
                 className={`relative p-2.5 rounded-xl transition-colors ${
-                  isScrolled
+                  dark
                     ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
                     : "hover:bg-white/20 text-white"
                 }`}
               >
                 <ShoppingBag size={20} strokeWidth={1.8} />
-
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
                     {cartCount}
                   </span>
                 )}
               </Link>
-              {/* Desktop auth — hidden on mobile */}
+
+              {/* Auth */}
               <div className="hidden sm:flex items-center gap-2 ml-1">
                 {isLoggedIn ? (
                   <div className="relative">
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-                        isScrolled
+                        dark
                           ? "bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90"
                           : "bg-white text-[#0F0F0F] hover:bg-white/90"
                       }`}
@@ -129,7 +146,6 @@ export function Header() {
                           <User size={16} />
                           My Profile
                         </Link>
-
                         <Link
                           href="/orders"
                           className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-[#F5F5F5]"
@@ -137,7 +153,6 @@ export function Header() {
                           <ShoppingBag size={16} />
                           My Orders
                         </Link>
-
                         <button
                           onClick={() => {
                             logout();
@@ -155,7 +170,7 @@ export function Header() {
                     <Link
                       href="/login"
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold text-sm transition-all ${
-                        isScrolled
+                        dark
                           ? "text-[#0F0F0F] hover:bg-[#F5F5F5]"
                           : "text-white hover:bg-white/20"
                       }`}
@@ -163,11 +178,10 @@ export function Header() {
                       <LogIn size={16} />
                       Login
                     </Link>
-
                     <Link
                       href="/signup"
                       className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-                        isScrolled
+                        dark
                           ? "bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90"
                           : "bg-white text-[#0F0F0F] hover:bg-white/90"
                       }`}
@@ -178,44 +192,6 @@ export function Header() {
                   </>
                 )}
               </div>
-              {/* {isLoggedIn ? (
-                <button
-                  onClick={() => logout()}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-                    isScrolled
-                      ? "bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90"
-                      : "bg-white text-[#0F0F0F] hover:bg-white/90"
-                  }`}
-                >
-                  <User size={16} />
-                  Account
-                </button>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold text-sm transition-all ${
-                      isScrolled
-                        ? "text-[#0F0F0F] hover:bg-[#F5F5F5]"
-                        : "text-white hover:bg-white/20"
-                    }`}
-                  >
-                    <LogIn size={16} />
-                    Login
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-                      isScrolled
-                        ? "bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90"
-                        : "bg-white text-[#0F0F0F] hover:bg-white/90"
-                    }`}
-                  >
-                    <UserPlus size={16} />
-                    Sign Up
-                  </Link>
-                </>
-              )} */}
             </div>
           </div>
         </div>

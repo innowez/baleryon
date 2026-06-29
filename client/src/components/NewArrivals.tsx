@@ -38,12 +38,11 @@ export function NewArrivals() {
     }
   };
 
-  const calculateDiscount = (original: number, current: number) => {
-    return Math.round(((original - current) / original) * 100);
-  };
+  const calculateDiscount = (original: number, current: number) =>
+    Math.round(((original - current) / original) * 100);
 
   return (
-    <section className="py-14 sm:py-20 bg-white">
+    <section className="py-14 sm:py-20 bg-white overflow-hidden">
       <div className="container-max">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -64,7 +63,7 @@ export function NewArrivals() {
         </motion.div>
 
         {/* Mobile: Horizontal scroll, Desktop: Grid */}
-        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        <div className="flex gap-3 overflow-x-auto overflow-y-hidden snap-x snap-mandatory -mx-4 px-4 pb-2 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 sm:overflow-visible">
           {products.map((product, idx) => (
             <motion.div
               key={product.id}
@@ -116,16 +115,14 @@ export function NewArrivals() {
                 <h3 className="heading-product line-clamp-2 text-sm sm:text-base">
                   {product.name}
                 </h3>
-
-                {/* Pricing */}
                 <div className="flex items-center gap-2">
-                  <span className="price-text text-[#0F0F0F]">₹{product.price.toLocaleString()}</span>
+                  <span className="price-text text-[#0F0F0F]">
+                    ₹{product.price.toLocaleString()}
+                  </span>
                   <span className="text-xs sm:text-sm text-[#6B7280] line-through">
                     ₹{product.originalPrice.toLocaleString()}
                   </span>
                 </div>
-
-                {/* Rating */}
                 <div className="flex items-center gap-1">
                   <div className="flex text-yellow-400">
                     {[...Array(5)].map((_, i) => (
@@ -140,13 +137,12 @@ export function NewArrivals() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Mobile Action Buttons — always visible */}
               <div className="flex gap-2 mt-4 sm:hidden">
                 <button
                   onClick={() => handleAddToCart(product)}
                   className="flex-1 bg-[#0F0F0F] text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm"
                 >
-                  {/* <Plus size={16} />  */}
                   Add To Cart
                 </button>
                 <button
@@ -157,30 +153,21 @@ export function NewArrivals() {
                 </button>
               </div>
 
-              {/* Desktop Hover Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={
-                  hovered === product.id
-                    ? { opacity: 1, y: 0 }
-                    : { opacity: 0, y: 10 }
-                }
-                transition={{ duration: 0.3 }}
-                className="hidden sm:flex gap-2 mt-4"
-              >
-                <motion.button
+              {/* Desktop Buttons — always visible, subtle hover lift */}
+              <div className="hidden sm:flex gap-2 mt-4">
+                <button
                   onClick={() => handleAddToCart(product)}
-                  className="flex-1 bg-[#0F0F0F] text-white py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                  className="flex-1 bg-[#0F0F0F] text-white py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all text-sm"
                 >
                   <Plus size={16} /> Add to Cart
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   onClick={() => handleAddToCart(product)}
-                  className="flex-1 bg-[#FF3B30] text-white py-2.5 sm:py-3 rounded-xl font-semibold hover:bg-[#FF3B30]/90 active:scale-95 transition-all touch-manipulation text-sm"
+                  className="flex-1 bg-[#FF3B30] text-white py-2.5 sm:py-3 rounded-xl font-semibold hover:bg-[#FF3B30]/90 active:scale-95 transition-all text-sm"
                 >
                   Buy Now
-                </motion.button>
-              </motion.div>
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>

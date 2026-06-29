@@ -25,7 +25,7 @@ export default function Home() {
       <NewArrivals />
       <PromotionalBanner />
       <BestSellers />
-      <EditorialLookbook />
+      {/* <EditorialLookbook /> */}
       <InstagramGrid />
       <Newsletter />
       <Footer />

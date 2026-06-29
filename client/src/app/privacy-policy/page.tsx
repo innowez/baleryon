@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
   return (
     <>
       <AnnouncementBar />
-      <Header />
+      <Header variant="solid"/>
 
       <main className="pt-[calc(2.5rem+4rem)] pb-36 md:pb-16">
         <div className="container-content">

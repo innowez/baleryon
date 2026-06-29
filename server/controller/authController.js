@@ -3,7 +3,8 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
-import { toLegacyUser, toFullName } from "../utils/userMapper.js";
+// import { toLegacyUser, toFullName } from "../utils/userMapper.js";
+import { sendOTP } from "../utils/whatsApp.js";
 // import { sendOtp } from "../utils/msg91.js";
 
 // Generate JWT Token
@@ -27,7 +28,7 @@ function sanitizeUser(user) {
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const OTP_RESEND_INTERVAL_MS = 30 * 1000; // 30s between sends
 const MAX_VERIFY_ATTEMPTS = 5;
-const otpStore = new Map(); // phone -> { code, expiresAt, lastSentAt, attempts }
+const otpStore = new Map();
 
 function normalizePhone(phone) {
   const trimmed = String(phone).trim();
@@ -55,6 +56,9 @@ function consumeOtp(rawPhone, code) {
   }
 
   const entry = otpStore.get(phone);
+
+  console.log(entry, "entryentryentryentryentryentry");
+
   if (!entry) {
     return {
       ok: false,
@@ -105,6 +109,61 @@ function consumeOtp(rawPhone, code) {
 // @desc    Send an OTP to a phone number
 // @route   POST /api/auth/send-otp
 // @access  Public
+// export const sendPhoneOtpController = asyncHandler(async (req, res) => {
+//   const { phone } = req.body;
+
+//   if (!phone || !isValidPhone(phone)) {
+//     return res
+//       .status(400)
+//       .json({ message: "Please provide a valid phone number" });
+//   }
+
+//   const normalizedPhone = normalizePhone(phone);
+//   const now = Date.now();
+//   const existing = otpStore.get(normalizedPhone);
+
+//   if (existing && now - existing.lastSentAt < OTP_RESEND_INTERVAL_MS) {
+//     const waitSeconds = Math.ceil(
+//       (OTP_RESEND_INTERVAL_MS - (now - existing.lastSentAt)) / 1000,
+//     );
+//     return res.status(429).json({
+//       message: `Please wait ${waitSeconds}s before requesting another code`,
+//     });
+//   }
+
+//   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+
+//   const otpHash = crypto.createHash("sha256").update(code).digest("hex");
+
+//   await sendOTP(normalizedPhone, code);
+
+//   otpStore.set(normalizedPhone, {
+//     code: otpHash,
+//     expiresAt: now + OTP_TTL_MS,
+//     lastSentAt: now,
+//     attempts: 0,
+//   });
+
+//   // otpStore.set(normalizedPhone, {
+//   //   code,
+//   //   expiresAt: now + OTP_TTL_MS,
+//   //   lastSentAt: now,
+//   //   attempts: 0,
+//   // });
+
+//   // TODO: integrate a real SMS provider here (Twilio/MSG91/etc.).
+//   console.log(`[auth] OTP for ${normalizedPhone}: ${code}`);
+
+//   const isProd = process.env.NODE_ENV === "production";
+//   return res.status(200).json({
+//     message: "OTP sent successfully",
+//     ...(isProd ? {} : { devOtp: code }),
+//   });
+// });
+
+// @desc    Send an OTP to a phone number
+// @route   POST /api/auth/send-otp
+// @access  Public
 export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   const { phone } = req.body;
 
@@ -122,17 +181,27 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     const waitSeconds = Math.ceil(
       (OTP_RESEND_INTERVAL_MS - (now - existing.lastSentAt)) / 1000,
     );
+
     return res.status(429).json({
       message: `Please wait ${waitSeconds}s before requesting another code`,
     });
   }
 
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
-
   const otpHash = crypto.createHash("sha256").update(code).digest("hex");
 
-  // await sendOtp(normalizedPhone, code);
+  // Send WhatsApp OTP
+  const waResponse = await sendOTP(normalizedPhone, code);
 
+  // If WhatsApp failed, don't save OTP
+  if (!waResponse.success) {
+    return res.status(500).json({
+      message: "Failed to send OTP via WhatsApp. Please try again later.",
+      error: waResponse.error,
+    });
+  }
+
+  // Save OTP only after successful WhatsApp send
   otpStore.set(normalizedPhone, {
     code: otpHash,
     expiresAt: now + OTP_TTL_MS,
@@ -140,17 +209,10 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     attempts: 0,
   });
 
-  // otpStore.set(normalizedPhone, {
-  //   code,
-  //   expiresAt: now + OTP_TTL_MS,
-  //   lastSentAt: now,
-  //   attempts: 0,
-  // });
-
-  // TODO: integrate a real SMS provider here (Twilio/MSG91/etc.).
   console.log(`[auth] OTP for ${normalizedPhone}: ${code}`);
 
   const isProd = process.env.NODE_ENV === "production";
+
   return res.status(200).json({
     message: "OTP sent successfully",
     ...(isProd ? {} : { devOtp: code }),
@@ -354,6 +416,7 @@ export const loginController = asyncHandler(async (req, res) => {
 // @access  Public
 export const loginWithPhoneController = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
+  console.log(phone, otp, "phonephonephonephonephone");
 
   // Validation
   if (!phone || !otp) {
@@ -370,6 +433,8 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
 
   const normalizedPhone = otpResult.phone;
 
+  console.log(normalizedPhone, "normalizedPhonenormalizedPhonenormalizedPhone");
+
   // Find user
   const user = await prisma.user.findUnique({
     where: { phone: normalizedPhone },
@@ -377,6 +442,8 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
       role: true,
     },
   });
+
+  console.log(user, "useruseruseruseruser");
 
   if (!user) {
     return res.status(404).json({

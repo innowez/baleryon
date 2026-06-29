@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import {Lock, Phone } from "lucide-react";
+import { Lock, Phone } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,14 +70,14 @@ export default function LoginPage() {
       setOtpInfo(
         devOtp
           ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
-          : `We sent a 6-digit code to ${formData.phone}.`
+          : `We sent a 6-digit code to ${formData.phone}.`,
       );
       setPhoneStep("otp");
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not send OTP. Please try again."
+          : "Could not send OTP. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -100,7 +100,7 @@ export default function LoginPage() {
       router.push("/");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Login failed. Please try again."
+        err instanceof Error ? err.message : "Login failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -118,7 +118,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Google login failed. Please try again."
+          : "Google login failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -147,7 +147,9 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Title */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Welcome Back</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              Welcome Back
+            </h1>
             <p className="text-gray-600">Sign in to continue shopping</p>
           </div>
 
@@ -245,8 +247,8 @@ export default function LoginPage() {
           {/* {authMethod === "email" && (
             <form onSubmit={handleEmailLogin}>
               <div className="space-y-4"> */}
-                {/* Email Input */}
-                {/* <div>
+          {/* Email Input */}
+          {/* <div>
                   <label
                     htmlFor="email"
                     className="block text-sm font-semibold mb-2"
@@ -268,8 +270,8 @@ export default function LoginPage() {
                   </div>
                 </div> */}
 
-                {/* Password Input */}
-                {/* <div>
+          {/* Password Input */}
+          {/* <div>
                   <label
                     htmlFor="password"
                     className="block text-sm font-semibold mb-2"
@@ -302,8 +304,8 @@ export default function LoginPage() {
                   </div>
                 </div> */}
 
-                {/* Forgot Password Link */}
-                {/* <div className="text-right">
+          {/* Forgot Password Link */}
+          {/* <div className="text-right">
                   <Link
                     href="/forgot-password"
                     className="text-sm font-semibold text-[#0F0F0F] hover:underline"
@@ -312,15 +314,15 @@ export default function LoginPage() {
                   </Link>
                 </div> */}
 
-                {/* Submit Button */}
-                {/* <button
+          {/* Submit Button */}
+          {/* <button
                   type="submit"
                   disabled={isLoading}
                   className="w-full bg-[#0F0F0F] text-white py-3.5 rounded-xl font-semibold hover:bg-[#2F2F2F] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Signing In..." : "Sign In"}
                 </button> */}
-              {/* </div>
+          {/* </div>
             </form>
           )} */}
 
@@ -344,7 +346,7 @@ export default function LoginPage() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="9XXXX XXXXX"
                       required
                       className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors"
                     />

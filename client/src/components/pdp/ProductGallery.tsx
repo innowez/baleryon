@@ -40,46 +40,47 @@ export default function ProductGallery({
           }
         });
       },
-      { threshold: 0.8 }
+      { threshold: 0.6 }
     );
 
-    Array.from(scrollContainer.children).forEach((child) => {
-      observer.observe(child);
-    });
+    Array.from(scrollContainer.children).forEach((child) =>
+      observer.observe(child)
+    );
 
     return () => observer.disconnect();
   }, [onIndexChange]);
 
   return (
     <>
-      {/* Desktop: Flex Layout with Thumbnails + Main Image */}
-      <div className="hidden md:flex gap-3">
-        {/* Thumbnails */}
-        <div className="w-20 flex flex-col gap-3 flex-shrink-0">
+      {/* ── Desktop ── */}
+      <div className="hidden md:flex gap-4">
+
+        {/* Thumbnail strip — vertical */}
+        <div className="flex flex-col gap-2 w-[72px] flex-shrink-0">
           {images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => onIndexChange(idx)}
-              className={`w-20 h-24 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+              className={`relative w-[72px] h-[90px] rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
                 idx === activeIndex
-                  ? "border-[#0F0F0F] ring-2 ring-[#0F0F0F]/20"
-                  : "border-[#E5E5E5] hover:border-[#0F0F0F]"
+                  ? "border-[#0F0F0F]"
+                  : "border-[#E5E5E5] hover:border-[#9CA3AF]"
               }`}
             >
               <Image
                 src={img}
-                alt={`${productName} thumbnail ${idx + 1}`}
+                alt={`${productName} view ${idx + 1}`}
                 fill
                 className="object-cover"
-                sizes="80px"
+                sizes="72px"
               />
             </button>
           ))}
         </div>
 
-        {/* Main Image */}
+        {/* Main image */}
         <div
-          className="flex-1 relative aspect-[3/4] product-img-wrap cursor-zoom-in group"
+          className="flex-1 relative aspect-[3/4] rounded-2xl overflow-hidden cursor-zoom-in bg-[#F5F5F5]"
           onClick={() => onOpenModal(activeIndex)}
         >
           <AnimatePresence mode="wait">
@@ -88,33 +89,39 @@ export default function ProductGallery({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.25 }}
               className="absolute inset-0"
             >
               <Image
                 src={images[activeIndex]}
                 alt={productName}
                 fill
-                className="object-cover image-zoom"
-                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+                sizes="(max-width: 1024px) 50vw, 40vw"
                 priority
               />
             </motion.div>
           </AnimatePresence>
+
+          {/* Image counter pill */}
+          <div className="absolute bottom-3 right-3 bg-black/50 text-white text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {activeIndex + 1} / {images.length}
+          </div>
         </div>
       </div>
 
-      {/* Mobile: Swipe Slider with Dots */}
+      {/* ── Mobile ── */}
       <div className="md:hidden">
-        {/* Swipe Container */}
+        {/* Swipe strip */}
         <div
           ref={mobileScrollRef}
-          className="snap-scroll-x scrollbar-hide w-full flex overflow-x-auto mb-3"
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide w-full rounded-2xl"
+          style={{ scrollbarWidth: "none" }}
         >
           {images.map((img, idx) => (
             <div
               key={idx}
-              className="snap-center w-full flex-shrink-0 relative aspect-[3/4] product-img-wrap cursor-zoom-in"
+              className="relative w-full flex-shrink-0 aspect-[3/4] snap-center bg-[#F5F5F5] cursor-zoom-in"
               onClick={() => onOpenModal(idx)}
             >
               <Image
@@ -122,32 +129,64 @@ export default function ProductGallery({
                 alt={`${productName} image ${idx + 1}`}
                 fill
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
+                sizes="100vw"
                 priority={idx === 0}
               />
             </div>
           ))}
         </div>
 
-        {/* Pagination Dots */}
-        <div className="flex gap-2 justify-center">
+        {/* Dots */}
+        <div className="flex gap-1.5 justify-center mt-3">
           {images.map((_, idx) => (
+            <button
+              key={idx}
+              aria-label={`Go to image ${idx + 1}`}
+              onClick={() => {
+                setActiveDot(idx);
+                onIndexChange(idx);
+                mobileScrollRef.current?.scrollTo({
+                  left: idx * (mobileScrollRef.current?.offsetWidth ?? 0),
+                  behavior: "smooth",
+                });
+              }}
+              className={`rounded-full transition-all duration-300 ${
+                idx === activeDot
+                  ? "w-5 h-1.5 bg-[#0F0F0F]"
+                  : "w-1.5 h-1.5 bg-[#0F0F0F]/25"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Mobile thumbnail row — tap to jump */}
+        <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1"
+          style={{ scrollbarWidth: "none" }}>
+          {images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => {
                 setActiveDot(idx);
                 onIndexChange(idx);
                 mobileScrollRef.current?.scrollTo({
-                  left: (idx * mobileScrollRef.current.offsetWidth),
+                  left: idx * (mobileScrollRef.current?.offsetWidth ?? 0),
                   behavior: "smooth",
                 });
               }}
-              className={`rounded-full transition-all duration-300 ${
+              className={`relative flex-shrink-0 w-14 h-[70px] rounded-lg overflow-hidden border-2 transition-all ${
                 idx === activeDot
-                  ? "w-6 h-2 bg-[#0F0F0F]"
-                  : "w-2 h-2 bg-[#0F0F0F]/30"
+                  ? "border-[#0F0F0F]"
+                  : "border-[#E5E5E5]"
               }`}
-            />
+            >
+              <Image
+                src={img}
+                alt={`${productName} thumbnail ${idx + 1}`}
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+            </button>
           ))}
         </div>
       </div>

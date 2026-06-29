@@ -17,9 +17,8 @@ export function BestSellers() {
   const scroll = (direction: "left" | "right") => {
     const container = scrollContainer.current;
     if (container) {
-      const scrollAmount = 400;
       container.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+        left: direction === "left" ? -400 : 400,
         behavior: "smooth",
       });
     }
@@ -36,7 +35,7 @@ export function BestSellers() {
   };
 
   return (
-    <section className="py-14 sm:py-20 bg-[#F5F5F5]">
+    <section className="py-14 sm:py-20 bg-[#F5F5F5] overflow-hidden">
       <div className="container-max">
         <div className="flex justify-between items-center mb-6 sm:mb-10">
           <motion.div
@@ -72,7 +71,8 @@ export function BestSellers() {
         {/* Scrollable Container */}
         <div
           ref={scrollContainer}
-          className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+          className="flex gap-4 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+          style={{ scrollbarWidth: "none" }}
         >
           {products.map((product, idx) => (
             <motion.div
@@ -86,15 +86,13 @@ export function BestSellers() {
               className="flex-shrink-0 w-64 snap-start group"
             >
               {/* Image */}
-              <div className="relative overflow-hidden rounded-2xl bg-white aspect-3/4 mb-4">
+              <div className="relative overflow-hidden rounded-2xl bg-white aspect-[3/4] mb-4">
                 <Image
-                  src={product.image}
+                  src={hovered === product.id && product.image2 ? product.image2 : product.image}
                   alt={product.name}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
                 />
-
-                {/* Quick badge */}
                 <div className="absolute top-3 left-3 bg-white/95 text-xs font-bold px-2.5 py-1 rounded-full tracking-widest">
                   BEST
                 </div>
@@ -116,8 +114,6 @@ export function BestSellers() {
                     ₹{product.originalPrice.toLocaleString()}
                   </span>
                 </div>
-
-                {/* Rating */}
                 <div className="flex items-center gap-1">
                   <div className="flex text-yellow-400 text-xs">
                     {[...Array(5)].map((_, i) => (
@@ -132,20 +128,13 @@ export function BestSellers() {
                 </div>
               </div>
 
-              {/* Add button */}
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={
-                  hovered === product.id
-                    ? { opacity: 1, y: 0 }
-                    : { opacity: 0, y: 10 }
-                }
-                transition={{ duration: 0.3 }}
+              {/* Add button — always visible */}
+              <button
                 onClick={() => handleAddToCart(product)}
                 className="w-full mt-3 bg-[#0F0F0F] text-white py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation"
               >
                 <ArrowRight size={14} /> Shop
-              </motion.button>
+              </button>
             </motion.div>
           ))}
         </div>

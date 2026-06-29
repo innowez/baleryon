@@ -12,6 +12,8 @@ export interface CreateOrderPayload {
   }[];
   totalAmount: number;
   paymentMethod: string;
+  couponCode: string | null;
+  discountAmount: number | null;
 }
 export interface CreateOrderResponse {
   orderId: string;

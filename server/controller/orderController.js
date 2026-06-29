@@ -183,10 +183,14 @@ export const createOrderController = asyncHandler(async (req, res) => {
     });
   } else {
     // ── Path B: items have product id (no variant selected) ─
-    const productIds = items.map((item) => item.id).filter(Boolean);
+    const productIds = items.map((item) => item.productId).filter(Boolean);
 
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: {
+        id: {
+          in: productIds,
+        },
+      },
     });
 
     if (products.length !== productIds.length) {
@@ -198,12 +202,13 @@ export const createOrderController = asyncHandler(async (req, res) => {
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     orderItemsData = items.map((item) => {
-      const product = productMap.get(item.id);
+      const product = productMap.get(item.productId);
+
       const unitPrice = parseFloat(product.salePrice ?? product.basePrice);
 
       return {
         productId: product.id,
-        variantId: null, // no variant
+        variantId: null,
         productName: product.title,
         quantity: item.quantity,
         unitPrice,

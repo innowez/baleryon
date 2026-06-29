@@ -52,7 +52,7 @@ export default function OrderDetailsPage() {
   return (
     <>
       <AnnouncementBar />
-      <Header />
+      <Header variant="solid"/>
 
       <main className="pt-[calc(2.5rem+4rem)] pb-24">
         <div className="container-max max-w-5xl">

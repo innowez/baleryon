@@ -3,21 +3,23 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Users } from "lucide-react";
+import { useLandingStore } from "@/store/landingStore";
 
 export function Newsletter() {
   const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  // const [isSubmitted, setIsSubmitted] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { subscribe, loading, success, error } = useLandingStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setIsSubmitted(true);
-      setTimeout(() => {
-        setEmail("");
-        setIsSubmitted(false);
-      }, 4000);
-    }
+
+    if (!email.trim()) return;
+
+    await subscribe(email);
+
+    setEmail("");
   };
 
   return (
@@ -76,23 +78,33 @@ export function Newsletter() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="flex items-center justify-center gap-2 py-4 bg-white text-[#0F0F0F] font-semibold rounded-xl hover:bg-white/95 transition-colors text-sm touch-manipulation"
+              disabled={loading}
+              className="flex items-center justify-center gap-2 py-4 bg-white text-[#0F0F0F] font-semibold rounded-xl hover:bg-white/95 transition-colors text-sm disabled:opacity-50"
             >
-              {isSubmitted ? (
-                "✓ You're in! Check your inbox"
+              {loading ? (
+                "Subscribing..."
               ) : (
                 <>
-                  Subscribe Now <ArrowRight size={15} />
+                  Subscribe Now
+                  <ArrowRight size={15} />
                 </>
               )}
             </motion.button>
           </form>
-
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 text-sm text-red-400 font-medium"
+            >
+              {error}
+            </motion.p>
+          )}
           <p className="mt-4 text-[11px] text-white/30">
             No spam ever. Unsubscribe anytime.
           </p>
 
-          {isSubmitted && (
+          {success && (
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}

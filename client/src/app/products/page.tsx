@@ -179,7 +179,7 @@ export default function ProductsPage() {
   return (
     <>
       <AnnouncementBar />
-      <Header />
+      <Header variant="solid"/>
 
       <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-10">
         <div className="container-max">

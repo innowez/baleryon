@@ -9,7 +9,7 @@ import {
   Edit2,
   Trash2,
   MapPin,
-  CreditCard,
+  // CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import { useCartStore } from "@/store/useCartStore";
@@ -28,6 +28,7 @@ import GuestAuth from "./GuestAuth";
 import { useCheckoutStore } from "@/store/useCheckoutStore";
 import { apiPost } from "@/lib/api";
 import { Address } from "@/lib/addressApi";
+import CouponChecker from "@/components/pdp/CouponChecker";
 declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
@@ -53,6 +54,10 @@ type RazorpayFailedError = {
 
 export default function CheckoutPage() {
   // const { user } = useAuthStore();
+  const [discountAmount, setDiscountAmount] = useState(0);
+
+  const [couponCode, setCouponCode] = useState("");
+
   const { user, isLoggedIn } = useAuthStore();
   const { items: cartItems, clearCart } = useCartStore();
   const buyNowItem = useCheckoutStore((s) => s.buyNowItem);
@@ -85,8 +90,7 @@ export default function CheckoutPage() {
 
   const shipping = 0;
   const tax = 0;
-  const totalPrice = subtotal + shipping + tax;
-
+  const totalPrice = subtotal + shipping + tax - discountAmount;
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -129,9 +133,10 @@ export default function CheckoutPage() {
         items,
         totalAmount: totalPrice,
         paymentMethod: selectedPayment,
-      });
 
-      alert(selectedPayment);
+        couponCode,
+        discountAmount,
+      });
 
       if (selectedPayment === "razorpay") {
         if (!result?.razorpayOrder) {
@@ -513,6 +518,22 @@ export default function CheckoutPage() {
                     ₹{totalPrice.toLocaleString()}
                   </span>
                 </div>
+
+                {/* Breakdown */}
+                <CouponChecker
+                  subtotal={subtotal}
+                  onApply={(discount, code) => {
+                    setDiscountAmount(discount);
+                    setCouponCode(code);
+                  }}
+                />
+
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Coupon ({couponCode})</span>
+                    <span>-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Place Order Button */}

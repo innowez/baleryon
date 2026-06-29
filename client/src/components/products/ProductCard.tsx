@@ -124,7 +124,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
       {/* Action Buttons */}
       <div className="flex gap-2 mt-4">
         {/* Quick Add Button */}
-        <motion.button
+        {/* <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={
             hovered
@@ -139,16 +139,16 @@ export function ProductCard({ product, index }: ProductCardProps) {
           className="flex-1 bg-[#0F0F0F] text-white py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#0F0F0F]/90 active:scale-95 transition-all touch-manipulation text-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
         >
           <Plus size={16} /> Add
-        </motion.button>
+        </motion.button> */}
 
         {/* View Details Button */}
-        <Link
+        {/* <Link
           href={`/products/${product.id}`}
           onClick={(e) => e.stopPropagation()}
           className="flex-1 border border-[#E5E5E5] text-[#0F0F0F] py-2.5 sm:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#F5F5F5] active:scale-95 transition-all touch-manipulation text-sm"
         >
           <Eye size={16} /> View
-        </Link>
+        </Link> */}
       </div>
     </motion.div>
   );
