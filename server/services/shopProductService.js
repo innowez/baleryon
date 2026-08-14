@@ -20,7 +20,15 @@ function parseListParam(value) {
     .filter(Boolean);
 }
 
-function buildPrismaWhere({ search, categories, colors, sizes, gender }) {
+function buildPrismaWhere({
+  search,
+  categories,
+  colors,
+  sizes,
+  gender,
+  newArrivals,
+  bestSellers,
+}) {
   const where = { isActive: true, AND: [] };
 
   if (gender) {
@@ -30,6 +38,14 @@ function buildPrismaWhere({ search, categories, colors, sizes, gender }) {
         { gender: null },
       ],
     });
+  }
+
+  if (newArrivals) {
+    where.AND.push({ isNewArrival: true });
+  }
+
+  if (bestSellers) {
+    where.AND.push({ isBestSeller: true });
   }
 
   if (search?.trim()) {
@@ -136,12 +152,17 @@ export async function listShopProducts(query) {
   const limit = Math.min(50, Math.max(1, parseInt(query.limit, 10) || 8));
   const sort = query.sort || "relevance";
 
+  const newArrivals = query.newArrivals === true || query.newArrivals === "true";
+  const bestSellers = query.bestSellers === true || query.bestSellers === "true";
+
   const where = buildPrismaWhere({
     search: query.search,
     categories: query.categories,
     colors: query.colors,
     sizes: query.sizes,
     gender: query.gender || "men",
+    newArrivals,
+    bestSellers,
   });
 
   const rows = await prisma.product.findMany({

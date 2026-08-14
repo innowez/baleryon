@@ -1,8 +1,13 @@
 import axios from "axios";
 
 export const checkDeliveryAvailability = async (pincode) => {
+  console.log("pincode", pincode);
+
+  console.log("DELHIVERY_BASE_URL", process.env.DELHIVERY_BASE_URL);
+  console.log("DELHIVERY_API_TOKEN", process.env.DELHIVERY_API_TOKEN);
+  
   const response = await axios.get(
-    `https://track.delhivery.com/c/api/pin-codes/json/?filter_codes=${pincode}`,
+    `${process.env.DELHIVERY_BASE_URL}/c/api/pin-codes/json/?filter_codes=${pincode}`,
     {
       headers: {
         Authorization: `Token ${process.env.DELHIVERY_API_TOKEN}`,
@@ -10,6 +15,8 @@ export const checkDeliveryAvailability = async (pincode) => {
     }
   );
 
+  console.log(JSON.stringify(response.data, null, 2));
+  console.log("response.data", response.data);
   const codes = response.data.delivery_codes;
 
   if (!codes || codes.length === 0) {

@@ -196,6 +196,10 @@ export const addProductController = asyncHandler(async (req, res) => {
         salePrice: salePrice != null ? new Prisma.Decimal(salePrice) : null,
         discountPercent: discount > 0 ? new Prisma.Decimal(discount) : null,
         isReturnable: req.body.isReturn === true || req.body.isReturn === "true",
+        isNewArrival:
+          req.body.isNewArrival === true || req.body.isNewArrival === "true",
+        isBestSeller:
+          req.body.isBestSeller === true || req.body.isBestSeller === "true",
         categoryId: categoryRecord?.id,
         brandId: brandRecord?.id ?? null,
         variants: {
@@ -529,6 +533,10 @@ export const updateProductController = asyncHandler(async (req, res) => {
         discountPercent: discount > 0 ? new Prisma.Decimal(discount) : null,
         isReturnable:
           req.body.isReturn === true || req.body.isReturn === "true",
+        isNewArrival:
+          req.body.isNewArrival === true || req.body.isNewArrival === "true",
+        isBestSeller:
+          req.body.isBestSeller === true || req.body.isBestSeller === "true",
         categoryId: categoryRecord?.id ?? null,
         brandId: brandRecord?.id ?? null,
         variants: { create: variantCreates },

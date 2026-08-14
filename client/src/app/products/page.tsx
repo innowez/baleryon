@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
@@ -40,13 +41,19 @@ function createDefaultFilters(priceMax: number): FilterState {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams(); 
+  const categoryFromUrl = searchParams.get("category");
   const [filterOptions, setFilterOptions] = useState<ShopFilterOptions | null>(
-    null
+    null,
   );
+
+
   const [defaultPriceMax, setDefaultPriceMax] = useState(3999);
+
   const [filters, setFilters] = useState<FilterState>(() =>
-    createDefaultFilters(3999)
+    createDefaultFilters(3999),
   );
+
   const [sort, setSort] = useState<SortOption>("relevance");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,37 +62,64 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const priceRangeInitialized = useRef(false);
+
+  /**
+   * URL category is the source of truth.
+   * No useEffect is needed to sync it into state.
+   */
+  const effectiveFilters = useMemo<FilterState>(
+    () => ({
+      ...filters,
+      categories: categoryFromUrl ? [categoryFromUrl] : filters.categories,
+    }),
+    [filters, categoryFromUrl],
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadFilterOptions() {
       setIsFiltersLoading(true);
+
       try {
         const options = await fetchShopFilterOptions("men");
+
         if (cancelled) return;
 
         const maxPrice = options.priceRange.max || 3999;
+
         setFilterOptions(options);
         setDefaultPriceMax(maxPrice);
+
         if (!priceRangeInitialized.current) {
           priceRangeInitialized.current = true;
-          setFilters(createDefaultFilters(maxPrice));
+
+          setFilters((prev) => ({
+            ...prev,
+            priceMax: maxPrice,
+          }));
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load filters");
+          setError(
+            err instanceof Error ? err.message : "Failed to load filters",
+          );
         }
       } finally {
-        if (!cancelled) setIsFiltersLoading(false);
+        if (!cancelled) {
+          setIsFiltersLoading(false);
+        }
       }
     }
 
     loadFilterOptions();
+
     return () => {
       cancelled = true;
     };
@@ -97,45 +131,61 @@ export default function ProductsPage() {
     async function loadProducts() {
       setIsLoading(true);
       setError(null);
+
       try {
         const data = await fetchShopProducts({
           page: currentPage,
           limit: PRODUCTS_PER_PAGE,
           sort,
           search,
-          filters,
+          filters: effectiveFilters,
           gender: "men",
         });
+
         if (cancelled) return;
 
         setProducts(data.products);
         setTotalPages(data.totalPages);
         setTotalProducts(data.totalProducts);
+
+        // Optional:
+        // Remove this if your API always returns the requested page.
         if (data.page !== currentPage) {
           setCurrentPage(data.page);
         }
       } catch (err) {
         if (cancelled) return;
+
         setProducts([]);
         setTotalPages(1);
         setTotalProducts(0);
-        setError(err instanceof Error ? err.message : "Failed to load products");
+
+        setError(
+          err instanceof Error ? err.message : "Failed to load products",
+        );
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     loadProducts();
+
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sort, search, filters]);
+  }, [currentPage, sort, search, effectiveFilters]);
 
   const updateFilter = <K extends keyof FilterState>(
     key: K,
-    value: FilterState[K]
+    value: FilterState[K],
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+
     setCurrentPage(1);
   };
 
@@ -159,27 +209,33 @@ export default function ProductsPage() {
   const activeFilterCount = useMemo(
     () =>
       [
-        filters.categories.length > 0 ? 1 : 0,
+        effectiveFilters.categories.length > 0 ? 1 : 0,
         filters.priceMin !== 0 || filters.priceMax !== defaultPriceMax ? 1 : 0,
         filters.rating > 0 ? 1 : 0,
         filters.colors.length > 0 ? 1 : 0,
         filters.sizes.length > 0 ? 1 : 0,
       ].reduce((a, b) => a + b, 0),
-    [filters, defaultPriceMax]
+    [effectiveFilters.categories.length, filters, defaultPriceMax],
   );
 
   const scrollToGrid = () => {
     const gridElement = document.querySelector("[data-product-grid]");
+
     if (gridElement) {
-      gridElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      gridElement.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
       window.scrollBy(0, -80);
     }
   };
 
   return (
     <>
+    <Suspense fallback={<div>Loading...</div>}>
       <AnnouncementBar />
-      <Header variant="solid"/>
+      <Header variant="solid" />
 
       <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-10">
         <div className="container-max">
@@ -211,7 +267,7 @@ export default function ProductsPage() {
 
           <ActiveFilters
             filters={filters}
-              search={search}
+            search={search}
             resultCount={totalProducts}
             defaultPriceMax={defaultPriceMax}
             onRemoveFilter={updateFilter}
@@ -276,7 +332,9 @@ export default function ProductsPage() {
                 </>
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-20">
-                  <p className="text-lg text-[#6B7280] mb-4">No products found</p>
+                  <p className="text-lg text-[#6B7280] mb-4">
+                    No products found
+                  </p>
                   <button
                     onClick={handleResetFilters}
                     className="button-secondary text-sm"
@@ -305,6 +363,7 @@ export default function ProductsPage() {
 
       <Footer />
       <BottomNav />
+      </Suspense>
     </>
   );
 }

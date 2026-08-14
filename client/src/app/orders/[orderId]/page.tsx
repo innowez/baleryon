@@ -49,6 +49,9 @@ export default function OrderDetailsPage() {
 
   const { order, trackingSteps } = data;
 
+  console.log(order,"orderorderorderorderorderorderorder");
+  
+
   return (
     <>
       <AnnouncementBar />
@@ -169,7 +172,7 @@ export default function OrderDetailsPage() {
 
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
-                  <span>₹{order.totalAmount}</span>
+                  <span>₹₹{Number(order.totalAmount).toLocaleString("en-IN")}</span>
                 </div>
 
                 <div className="pt-4">

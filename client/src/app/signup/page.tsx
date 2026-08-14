@@ -448,7 +448,7 @@ export default function SignupPage() {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      placeholder="John Doe"
+                      placeholder="Your Full Name"
                       required
                       className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors"
                     />
@@ -471,7 +471,7 @@ export default function SignupPage() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+91 9XXXXXXXXX"
                       required
                       className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:border-[#0F0F0F] focus:outline-none transition-colors"
                     />

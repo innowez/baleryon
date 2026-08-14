@@ -3,16 +3,32 @@
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
-import { useRef, useState } from "react";
-import { menProducts } from "@/data/products";
+import { useEffect, useRef, useState } from "react";
+import { fetchBestSellers } from "@/lib/productsApi";
+import type { Product } from "@/types/product";
 import { useCartStore } from "@/store/useCartStore";
 
 export function BestSellers() {
   const scrollContainer = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const addToCart = useCartStore((state) => state.addItem);
 
-  const products = menProducts.slice(2, 8);
+  useEffect(() => {
+    let active = true;
+
+    fetchBestSellers(6)
+      .then((data) => {
+        if (active) setProducts(data);
+      })
+      .catch(() => {
+        if (active) setProducts([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     const container = scrollContainer.current;
@@ -24,7 +40,7 @@ export function BestSellers() {
     }
   };
 
-  const handleAddToCart = (product: (typeof menProducts)[0]) => {
+  const handleAddToCart = (product: Product) => {
     addToCart({
       productId: product.id,
       name: product.name,
@@ -33,6 +49,9 @@ export function BestSellers() {
       quantity: 1,
     });
   };
+
+  // Only render the section when there are products flagged as Best Sellers.
+  if (products.length === 0) return null;
 
   return (
     <section className="py-14 sm:py-20 bg-[#F5F5F5] overflow-hidden">

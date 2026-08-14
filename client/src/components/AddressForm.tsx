@@ -5,6 +5,7 @@ import { useAddressStore, Address } from "@/store/useAddressStore";
 import { X } from "lucide-react";
 import { motion } from "motion/react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { toast } from "sonner";
 
 interface AddressFormProps {
   onClose: () => void;
@@ -121,25 +122,66 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
 
     return Object.keys(newErrors).length === 0;
   };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   if (!validateForm()) return;
+
+  //   // const payload: AddressInput = {
+  //   //   userId: user!.id,
+  //   //   fullName: formData.fullName,
+  //   //   phone: formData.phone,
+  //   //   addressLine1: formData.addressLine1,
+  //   //   city: formData.city,
+  //   //   state: formData.state,
+  //   //   postalCode: formData.postalCode,
+  //   //   country: formData.country,
+  //   //   isDefault: formData.isDefault,
+  //   // };
+
+  //   const payload = {
+  //     userId: user!.id,
+  //     fullName: formData.fullName,
+  //     phone: formData.phone,
+  //     addressLine1: formData.addressLine1,
+  //     city: formData.city,
+  //     state: formData.state,
+  //     postalCode: formData.postalCode,
+  //     country: formData.country,
+  //     isDefault: formData.isDefault,
+  //   };
+
+  //   if (address) {
+  //     await updateAddress(address.id, payload);
+  //   } else {
+  //     console.log(
+  //       payload,
+  //       "payloadpayloadpayloadpayloadpayloadpayloadpayloadpayload",
+  //     );
+
+  //     await addAddress(payload);
+  //   }
+
+  //   onClose();
+  // };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
+    if (!user) {
+      toast.error("You're not signed in.", {
+        description: "Please log in before adding or updating an address.",
+        duration: 3000,
+      });
+  
+      onClose();
+      return;
+    }
+  
     if (!validateForm()) return;
-
-    // const payload: AddressInput = {
-    //   userId: user!.id,
-    //   fullName: formData.fullName,
-    //   phone: formData.phone,
-    //   addressLine1: formData.addressLine1,
-    //   city: formData.city,
-    //   state: formData.state,
-    //   postalCode: formData.postalCode,
-    //   country: formData.country,
-    //   isDefault: formData.isDefault,
-    // };
-
+  
     const payload = {
-      userId: user!.id,
+      userId: user.id,
       fullName: formData.fullName,
       phone: formData.phone,
       addressLine1: formData.addressLine1,
@@ -149,20 +191,16 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
       country: formData.country,
       isDefault: formData.isDefault,
     };
-
+  
     if (address) {
       await updateAddress(address.id, payload);
     } else {
-      console.log(
-        payload,
-        "payloadpayloadpayloadpayloadpayloadpayloadpayloadpayload",
-      );
-
       await addAddress(payload);
     }
-
+  
     onClose();
   };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {

@@ -60,6 +60,8 @@ export function toLegacyProduct(product) {
     colors: productColors,
     productDetails: product.description || "",
     isReturn: product.isReturnable ?? false,
+    isNewArrival: product.isNewArrival ?? false,
+    isBestSeller: product.isBestSeller ?? false,
     image: (product.images || []).map((img) => img.imageUrl),
     productImages: (product.images || []).map((img) => ({
       id: img.id,

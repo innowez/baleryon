@@ -32,6 +32,7 @@ model User {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   addresses       Address[]
+  admin           Admin?
   analyticsEvents AnalyticsEvent[]
   carts           Cart[]
   notifications   Notification[]
@@ -41,6 +42,18 @@ model User {
   wishlists       Wishlist[]
 
   @@map("users")
+}
+
+model Admin {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @unique @map("user_id") @db.Uuid
+  role      AdminRole @default(SUPER_ADMIN)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
 }
 
 model Address {
@@ -109,6 +122,8 @@ model Product {
   discountPercent  Decimal?         @map("discount_percent") @db.Decimal(5, 2)
   note             String?
   isReturnable     Boolean          @default(false) @map("is_returnable")
+  isNewArrival     Boolean          @default(false) @map("is_new_arrival")
+  isBestSeller     Boolean          @default(false) @map("is_best_seller")
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
   orderItems       OrderItem[]
@@ -220,11 +235,11 @@ model Order {
   paymentMethod  String?       @map("payment_method") @db.VarChar(50)
   notes          String?
   placedAt       DateTime      @default(now()) @map("placed_at")
+  shipments      Shipment[]
   items          OrderItem[]
   address        Address?      @relation(fields: [addressId], references: [id])
   user           User          @relation(fields: [userId], references: [id])
   payments       Payment[]
-  shipments      shipments[]
 
   @@index([userId])
   @@map("orders")
@@ -272,6 +287,8 @@ model Coupon {
   startsAt     DateTime?  @map("starts_at")
   expiresAt    DateTime?  @map("expires_at")
   isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
 
   @@map("coupons")
 }
@@ -288,6 +305,26 @@ model Review {
 
   @@index([productId])
   @@map("reviews")
+}
+
+model Shipment {
+  id          String    @id @default(uuid()) @db.Uuid
+  orderId     String    @map("order_id") @db.Uuid
+  courierName String    @default("Delhivery")
+  awbNumber   String?   @map("awb_number")
+  shipmentId  String?   @map("shipment_id")
+  pickupId    String?   @map("pickup_id")
+  labelUrl    String?   @map("label_url")
+  invoiceUrl  String?   @map("invoice_url")
+  status      String    @default("CREATED")
+  trackingUrl String?
+  rawResponse Json?     @map("raw_response")
+  shippedAt   DateTime? @map("shipped_at")
+  pickedAt    DateTime? @map("picked_at")
+  deliveredAt DateTime? @map("delivered_at")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  order       Order     @relation(fields: [orderId], references: [id])
 }
 
 model OrderReturn {
@@ -386,15 +423,11 @@ model AnalyticsEvent {
   @@map("analytics_events")
 }
 
-model shipments {
-  id              String    @id @db.Uuid
-  order_id        String    @db.Uuid
-  courier_name    String?   @db.VarChar(100)
-  tracking_number String?
-  tracking_url    String?
-  shipped_at      DateTime?
-  delivered_at    DateTime?
-  orders          Order     @relation(fields: [order_id], references: [id])
+enum AdminRole {
+  SUPER_ADMIN
+  MANAGER
+  PRODUCT_MANAGER
+  ORDER_MANAGER
 }
 
 enum AuthProvider {

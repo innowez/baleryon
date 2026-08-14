@@ -52,11 +52,11 @@ export default function CouponChecker({ subtotal, onApply }: Props) {
         setMessage(response.message);
       }
     } catch (error) {
-      console.error(error);
+      console.log("CouponChecker error", error);
 
       setResult("failed");
 
-      setMessage("Failed to validate coupon");
+      setMessage(error instanceof Error ? error.message : "Failed to validate coupon");
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import {
   MapPin,
   // CreditCard,
 } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -29,6 +30,8 @@ import { useCheckoutStore } from "@/store/useCheckoutStore";
 import { apiPost } from "@/lib/api";
 import { Address } from "@/lib/addressApi";
 import CouponChecker from "@/components/pdp/CouponChecker";
+import { useRouter } from "next/navigation";
+
 declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
@@ -88,6 +91,18 @@ export default function CheckoutPage() {
     0,
   );
 
+  const handleOpenAddressForm = () => {
+    if (!user) {
+      toast.warning("Please sign in to add an address.", {
+        description: "Log in to save and manage your delivery addresses.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setShowAddressForm(true);
+  };
+
   const shipping = 0;
   const tax = 0;
   const totalPrice = subtotal + shipping + tax - discountAmount;
@@ -114,7 +129,7 @@ export default function CheckoutPage() {
 
   const selectedAddress = getSelectedAddress();
   const isAddressSelected = selectedAddressId !== null;
-
+  const router = useRouter();
   console.log(
     addresses,
     "addressesaddressesaddressesaddressesaddressesaddresses",
@@ -201,12 +216,18 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-white py-10 pb-20 sm:pb-0">
         <div className="container-max">
           <div className="flex items-center gap-3 mb-8">
-            <Link
-              href="/"
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/");
+                }
+              }}
               className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
             >
               <ArrowLeft size={24} />
-            </Link>
+            </button>
             <h1 className="heading-section">Checkout</h1>
           </div>
 
@@ -228,12 +249,12 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-[#F5F5F5] py-6 sm:py-10 pb-20 sm:pb-0">
       <div className="container-max">
         <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/"
+          <button
+            onClick={() => router.back()}
             className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
           >
             <ArrowLeft size={24} />
-          </Link>
+          </button>
           <h1 className="heading-section">Checkout</h1>
         </div>
 
@@ -297,8 +318,24 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
                           <button
+                            // onClick={(e) => {
+                            //   e.stopPropagation();
+                            //   setEditingAddress(address as Address);
+                            //   setShowAddressForm(true);
+                            // }}
+
                             onClick={(e) => {
                               e.stopPropagation();
+
+                              if (!isLoggedIn || !user) {
+                                toast.warning("Login required", {
+                                  description:
+                                    "Please sign in to edit your saved addresses.",
+                                  duration: 3000,
+                                });
+                                return;
+                              }
+
                               setEditingAddress(address as Address);
                               setShowAddressForm(true);
                             }}
@@ -325,7 +362,7 @@ export default function CheckoutPage() {
 
               {/* Add Address Button */}
               <button
-                onClick={() => setShowAddressForm(true)}
+                onClick={handleOpenAddressForm}
                 className="w-full border-2 border-dashed border-[#D1D5DB] py-3 rounded-xl font-semibold text-[#6B7280] hover:border-[#0F0F0F] hover:text-[#0F0F0F] transition-colors flex items-center justify-center gap-2"
               >
                 <Plus size={18} />{" "}

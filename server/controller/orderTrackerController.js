@@ -80,6 +80,9 @@ export const getOrderTrackingController = asyncHandler(async (req, res) => {
     step.current = index === currentIndex;
   });
 
+  console.log(order,"orderorderorderorderorderorderorder");
+  
+
   return res.status(200).json({
     success: true,
     order,

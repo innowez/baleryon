@@ -4,13 +4,19 @@ import Image from "next/image";
 import { Plus, Minus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import Link from "next/link";
+import { AnnouncementBar } from "@/components/AnnouncementBar";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 
 export default function CartPage() {
   const { items, totalPrice, removeItem, updateQuantity } = useCartStore();
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <AnnouncementBar />
+      <Header variant="solid" />
+      <div className="container-max pt-26 pb-24 md:pb-10">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
 
         {items.length === 0 ? (
@@ -126,11 +132,6 @@ export default function CartPage() {
                     <span>{items.length}</span>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>Free</span>
-                  </div>
-
                   <div className="border-t pt-4 flex justify-between font-bold text-lg">
                     <span>Total</span>
                     <span>₹{totalPrice.toLocaleString()}</span>
@@ -148,6 +149,8 @@ export default function CartPage() {
           </div>
         )}
       </div>
+      <Footer />
+      <BottomNav />
     </div>
   );
 }

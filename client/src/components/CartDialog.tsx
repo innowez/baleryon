@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
 import { X, Plus, Minus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useCartStore, CartItem } from "@/store/useCartStore";
+import { useCartStore } from "@/store/useCartStore";
 import { motion } from "motion/react";
 
 interface CartDialogProps {

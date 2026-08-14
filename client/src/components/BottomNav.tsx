@@ -7,7 +7,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CartDialog } from "./CartDialog";
-import { usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";  
 
 export function BottomNav() {
   const pathname = usePathname();

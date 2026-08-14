@@ -65,5 +65,7 @@ export function toShopProduct(product) {
     inStock,
     slug: product.slug,
     gender: product.gender,
+    isNewArrival: product.isNewArrival ?? false,
+    isBestSeller: product.isBestSeller ?? false,
   };
 }

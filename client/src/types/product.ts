@@ -15,6 +15,8 @@ export interface Product {
   inStock: boolean;
   slug?: string;
   gender?: string | null;
+  isNewArrival?: boolean;
+  isBestSeller?: boolean;
 }
 
 export type SortOption =

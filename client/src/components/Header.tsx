@@ -60,8 +60,6 @@ export function Header({ variant = "transparent" }: HeaderProps) {
             />
           </Link>
 
-          
-
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Search */}
@@ -76,17 +74,28 @@ export function Header({ variant = "transparent" }: HeaderProps) {
               <Search size={20} strokeWidth={1.8} />
             </button> */}
             <div className="flex items-center gap-5 pr-7">
-            <Link href={'/products'} className={`text-base ${
+              <Link
+                href="/products"
+                className={`text-base font-serif ${
                   dark
                     ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
                     : "hover:bg-white/20 text-white"
-                }`}>Product</Link>
-            <Link href={'/products'} className={`text-base ${
+                }`}
+              >
+                Product
+              </Link>
+
+              <Link
+                href="/products"
+                className={`text-base font-serif ${
                   dark
                     ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
                     : "hover:bg-white/20 text-white"
-                }`}>Collections</Link>
-          </div>
+                }`}
+              >
+                Collections
+              </Link>
+            </div>
             <SearchBar dark={dark} />
             <div className="hidden sm:flex items-center gap-1 sm:gap-2">
               {/* Wishlist */}

@@ -191,15 +191,15 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   const otpHash = crypto.createHash("sha256").update(code).digest("hex");
 
   // Send WhatsApp OTP
-  const waResponse = await sendOTP(normalizedPhone, code);
+  // const waResponse = await sendOTP(normalizedPhone, code);
 
   // If WhatsApp failed, don't save OTP
-  if (!waResponse.success) {
-    return res.status(500).json({
-      message: "Failed to send OTP via WhatsApp. Please try again later.",
-      error: waResponse.error,
-    });
-  }
+  // if (!waResponse.success) {
+  //   return res.status(500).json({
+  //     message: "Failed to send OTP via WhatsApp. Please try again later.",
+  //     error: waResponse.error,
+  //   });
+  // }
 
   // Save OTP only after successful WhatsApp send
   otpStore.set(normalizedPhone, {

@@ -87,3 +87,35 @@ export async function fetchRelatedShopProducts(
 
   return data.products.filter((p) => p.id !== excludeId).slice(0, limit);
 }
+
+export async function fetchNewArrivals(limit = 4): Promise<Product[]> {
+  const searchParams = new URLSearchParams({
+    gender: "men",
+    newArrivals: "true",
+    limit: String(limit),
+    page: "1",
+    sort: "newest",
+  });
+
+  const data = await apiFetch<ShopProductsResponse>(
+    `/api/shop/products?${searchParams.toString()}`
+  );
+
+  return data.products;
+}
+
+export async function fetchBestSellers(limit = 6): Promise<Product[]> {
+  const searchParams = new URLSearchParams({
+    gender: "men",
+    bestSellers: "true",
+    limit: String(limit),
+    page: "1",
+    sort: "relevance",
+  });
+
+  const data = await apiFetch<ShopProductsResponse>(
+    `/api/shop/products?${searchParams.toString()}`
+  );
+
+  return data.products;
+}

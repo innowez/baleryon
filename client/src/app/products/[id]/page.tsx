@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useBuyNowStore } from "@/store/useBuyNowStore";
+// import { useBuyNowStore } from "@/store/useBuyNowStore";
 import { notFound } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { Heart } from "lucide-react";

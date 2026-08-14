@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { Heart, Plus, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
-import { menProducts } from "@/data/products";
+import { useEffect, useState } from "react";
+import { fetchNewArrivals } from "@/lib/productsApi";
+import type { Product } from "@/types/product";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 
@@ -12,10 +13,26 @@ export function NewArrivals() {
   const addToCart = useCartStore((state) => state.addItem);
   const { isFavorited, addToWishlist, removeFromWishlist } = useWishlistStore();
 
-  const products = menProducts.slice(0, 4);
+  const [products, setProducts] = useState<Product[]>([]);
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const handleAddToCart = (product: (typeof menProducts)[0]) => {
+  useEffect(() => {
+    let active = true;
+
+    fetchNewArrivals(4)
+      .then((data) => {
+        if (active) setProducts(data);
+      })
+      .catch(() => {
+        if (active) setProducts([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleAddToCart = (product: Product) => {
     addToCart({
       productId: product.id,
       name: product.name,
@@ -25,7 +42,7 @@ export function NewArrivals() {
     });
   };
 
-  const handleWishlist = (product: (typeof menProducts)[0]) => {
+  const handleWishlist = (product: Product) => {
     if (isFavorited(product.id)) {
       removeFromWishlist(product.id);
     } else {
@@ -39,7 +56,10 @@ export function NewArrivals() {
   };
 
   const calculateDiscount = (original: number, current: number) =>
-    Math.round(((original - current) / original) * 100);
+    original > 0 ? Math.round(((original - current) / original) * 100) : 0;
+
+  // Only render the section when there are products flagged as New Arrivals.
+  if (products.length === 0) return null;
 
   return (
     <section className="py-14 sm:py-20 bg-white overflow-hidden">

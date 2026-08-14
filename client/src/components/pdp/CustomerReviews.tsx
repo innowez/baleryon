@@ -4,37 +4,37 @@ import { fetchProductReviews } from "@/lib/reviewsApi";
 import { ProductReview } from "@/types/review";
 import { useEffect, useState } from "react";
 
-interface CustomerReviewsProps {
-  rating: number;
-  reviewCount: number;
-}
+// interface CustomerReviewsProps {
+//   rating: number;
+//   reviewCount: number;
+// }
 
-const MOCK_REVIEWS = [
-  {
-    id: "1",
-    name: "Arjun M.",
-    date: "12 Mar 2026",
-    rating: 5,
-    body: "Excellent quality! The fabric is super comfortable and the fit is perfect. Highly recommend this product.",
-    verified: true,
-  },
-  {
-    id: "2",
-    name: "Priya S.",
-    date: "8 Feb 2026",
-    rating: 4,
-    body: "Great material and excellent craftsmanship. Slightly larger in the shoulders but overall a fantastic piece.",
-    verified: true,
-  },
-  {
-    id: "3",
-    name: "Rahul K.",
-    date: "27 Jan 2026",
-    rating: 5,
-    body: "Premium feel, exactly as described. This is my third purchase from Baleryon and I'm always satisfied.",
-    verified: false,
-  },
-];
+// const MOCK_REVIEWS = [
+//   {
+//     id: "1",
+//     name: "Arjun M.",
+//     date: "12 Mar 2026",
+//     rating: 5,
+//     body: "Excellent quality! The fabric is super comfortable and the fit is perfect. Highly recommend this product.",
+//     verified: true,
+//   },
+//   {
+//     id: "2",
+//     name: "Priya S.",
+//     date: "8 Feb 2026",
+//     rating: 4,
+//     body: "Great material and excellent craftsmanship. Slightly larger in the shoulders but overall a fantastic piece.",
+//     verified: true,
+//   },
+//   {
+//     id: "3",
+//     name: "Rahul K.",
+//     date: "27 Jan 2026",
+//     rating: 5,
+//     body: "Premium feel, exactly as described. This is my third purchase from Baleryon and I'm always satisfied.",
+//     verified: false,
+//   },
+// ];
 
 interface CustomerReviewsProps {
   productId: string;
