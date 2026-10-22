@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import Loader from "@/components/ui/Loader";
 
 export default function DeliveryChecker() {
   const [pincode, setPincode] = useState("");
@@ -85,7 +86,7 @@ export default function DeliveryChecker() {
             disabled={loading || pincode.length !== 6}
             className="rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : "Check"}
+            {loading ? <Loader size={16} /> : "Check"}
           </button>
         </div>
       ) : (

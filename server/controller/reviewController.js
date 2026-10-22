@@ -59,6 +59,24 @@ export const createOrUpdateReviewController = asyncHandler(async (req, res) => {
   });
 });
 
+// Returns the current user's own review for a product, if any -- used by
+// the order detail page to show "Write review" vs "Edit review".
+export const getUserReviewController = asyncHandler(async (req, res) => {
+  const { userId, productId } = req.params;
+
+  const review = await prisma.review.findFirst({
+    where: {
+      userId,
+      productId,
+    },
+  });
+
+  return res.json({
+    success: true,
+    review,
+  });
+});
+
 export const getProductReviewsController = asyncHandler(async (req, res) => {
   const { productId } = req.params;
 

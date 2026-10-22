@@ -94,18 +94,11 @@ export default function ProductAccordion({ product }: ProductAccordionProps) {
           </div>
           <div>
             <h4 className="font-semibold text-sm text-[#0F0F0F] mb-1">
-              Returns
+              Exchanges
             </h4>
             <p className="text-sm text-[#6B7280]">
-              30-day easy return policy. Items must be unused and in original packaging.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-sm text-[#0F0F0F] mb-1">
-              Replacements
-            </h4>
-            <p className="text-sm text-[#6B7280]">
-              Defective items will be replaced free of charge within 7 days of purchase.
+              No refunds, but eligible items can be exchanged once for a different size or color
+              within 2 days of delivery, from your Orders page.
             </p>
           </div>
         </div>

@@ -165,12 +165,13 @@ export default function TermsAndConditionsPage() {
             {/* Section 11 */}
             <section>
               <h2 className="text-2xl font-bold text-[#0F0F0F] mb-4">
-                11. Returns and Refunds
+                11. Exchanges
               </h2>
               <p>
-                Please refer to our Returns & Refunds policy for information regarding product
-                returns, refunds, and exchanges. All return requests must be made within 7 days of
-                delivery. Products must be in original condition with all tags and packaging intact.
+                Baleryon does not offer refunds, but eligible products may be exchanged once for a
+                different size or color. Exchange requests must be made within 2 days of delivery,
+                from your Orders page, and are only available on products marked as exchangeable.
+                Each item purchased may be exchanged once.
               </p>
             </section>
 

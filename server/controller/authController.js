@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 // import { toLegacyUser, toFullName } from "../utils/userMapper.js";
-import { sendOTP } from "../utils/whatsApp.js";
+import { sendOTP, verifyOTP } from "../utils/whatsApp.js";
 // import { sendOtp } from "../utils/msg91.js";
 
 // Generate JWT Token
@@ -25,51 +25,68 @@ function sanitizeUser(user) {
 /*                                                                            */
 /*  This uses an in-memory store for simplicity. For production.           */
 /* -------------------------------------------------------------------------- */
-const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const OTP_RESEND_INTERVAL_MS = 30 * 1000; // 30s between sends
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_RESEND_INTERVAL_MS = 30 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
+
+// Stores the provider's OTP ID, not the actual OTP code.
 const otpStore = new Map();
 
 function normalizePhone(phone) {
-  const trimmed = String(phone).trim();
-  const hasPlus = trimmed.startsWith("+");
-  const digits = trimmed.replace(/\D/g, "");
-  return hasPlus ? `+${digits}` : digits;
+  const raw = String(phone ?? "").trim();
+  const digits = raw.replace(/\D/g, "");
+
+  // Normalize Indian numbers to E.164 format.
+  if (/^[6-9]\d{9}$/.test(digits)) {
+    return `+91${digits}`;
+  }
+
+  if (/^91[6-9]\d{9}$/.test(digits)) {
+    return `+${digits}`;
+  }
+
+  // Allow other international E.164 numbers if needed.
+  if (
+    raw.startsWith("+") &&
+    /^\+[1-9]\d{7,14}$/.test(raw.replace(/[\s()-]/g, ""))
+  ) {
+    return raw.replace(/[\s()-]/g, "");
+  }
+
+  return null;
 }
 
 function isValidPhone(phone) {
-  const digits = String(phone).replace(/\D/g, "");
-  return digits.length >= 7 && digits.length <= 15;
+  return Boolean(normalizePhone(phone));
 }
 
-// Returns { ok, status, message } and consumes the OTP on success.
-function consumeOtp(rawPhone, code) {
+// Verify through Wakit and consume the challenge on success.
+async function consumeOtp(rawPhone, code) {
   const phone = normalizePhone(rawPhone);
 
-  if (!phone || !code) {
+  if (!phone || typeof code !== "string" || !/^\d{6}$/.test(code)) {
     return {
       ok: false,
       status: 400,
-      message: "Phone and OTP are required",
+      message: "Please provide a valid phone number and 6-digit OTP.",
       phone,
     };
   }
 
   const entry = otpStore.get(phone);
 
-  console.log(entry, "entryentryentryentryentryentry");
-
   if (!entry) {
     return {
       ok: false,
       status: 400,
-      message: "No OTP requested for this number. Please request a new code.",
+      message: "No active OTP found. Please request a new code.",
       phone,
     };
   }
 
   if (Date.now() > entry.expiresAt) {
     otpStore.delete(phone);
+
     return {
       ok: false,
       status: 400,
@@ -80,6 +97,7 @@ function consumeOtp(rawPhone, code) {
 
   if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
     otpStore.delete(phone);
+
     return {
       ok: false,
       status: 429,
@@ -87,23 +105,56 @@ function consumeOtp(rawPhone, code) {
       phone,
     };
   }
-  const enteredHash = crypto
-    .createHash("sha256")
-    .update(String(code).trim())
-    .digest("hex");
 
-  if (entry.code !== enteredHash) {
-    entry.attempts += 1;
+  // Count every verification attempt, including incorrect codes.
+  entry.attempts += 1;
+
+  const result = await verifyOTP(entry.id, code);
+  console.log(result, "resultresultresultresultresult");
+  if (!result.success) {
+    // Don't consume the challenge for a temporary provider outage.
+    if (result.status && result.status >= 500) {
+      return {
+        ok: false,
+        status: 502,
+        message: "OTP verification service is temporarily unavailable.",
+        phone,
+      };
+    }
+
+    if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
+      otpStore.delete(phone);
+    }
+
     return {
       ok: false,
       status: 401,
-      message: "Invalid OTP. Please try again.",
+      message: "Invalid or expired OTP. Please try again.",
+      phone,
+    };
+  }
+
+  if (!result.verified) {
+    if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
+      otpStore.delete(phone);
+    }
+
+    return {
+      ok: false,
+      status: 401,
+      message: "Invalid or expired OTP. Please try again.",
       phone,
     };
   }
 
   otpStore.delete(phone);
-  return { ok: true, status: 200, message: "OTP verified", phone };
+
+  return {
+    ok: true,
+    status: 200,
+    message: "OTP verified",
+    phone,
+  };
 }
 
 // @desc    Send an OTP to a phone number
@@ -164,16 +215,73 @@ function consumeOtp(rawPhone, code) {
 // @desc    Send an OTP to a phone number
 // @route   POST /api/auth/send-otp
 // @access  Public
-export const sendPhoneOtpController = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
+// export const sendPhoneOtpController = asyncHandler(async (req, res) => {
+//   const { phone } = req.body;
 
-  if (!phone || !isValidPhone(phone)) {
-    return res
-      .status(400)
-      .json({ message: "Please provide a valid phone number" });
+//   // console.log(phone, "phonephonephonephonephone");
+//   // console.log(isValidPhone(phone), "isValidPhoneisValidPhoneisValidPhone");
+
+//   if (!phone || !isValidPhone(phone)) {
+//     return res
+//       .status(400)
+//       .json({ message: "Please provide a valid phone number" });
+//   }
+
+//   const normalizedPhone = normalizePhone(phone);
+//   const now = Date.now();
+//   const existing = otpStore.get(normalizedPhone);
+
+//   if (existing && now - existing.lastSentAt < OTP_RESEND_INTERVAL_MS) {
+//     const waitSeconds = Math.ceil(
+//       (OTP_RESEND_INTERVAL_MS - (now - existing.lastSentAt)) / 1000,
+//     );
+
+//     return res.status(429).json({
+//       message: `Please wait ${waitSeconds}s before requesting another code`,
+//     });
+//   }
+
+//   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+//   const otpHash = crypto.createHash("sha256").update(code).digest("hex");
+
+//   // Send WhatsApp OTP
+//   const waResponse = await sendOTP(normalizedPhone, code);
+
+//   // If WhatsApp failed, don't save OTP
+//   // if (!waResponse.success) {
+//   //   return res.status(500).json({
+//   //     message: "Failed to send OTP via WhatsApp. Please try again later.",
+//   //     error: waResponse.error,
+//   //   });
+//   // }
+
+//   // Save OTP only after successful WhatsApp send
+//   otpStore.set(normalizedPhone, {
+//     code: otpHash,
+//     expiresAt: now + OTP_TTL_MS,
+//     lastSentAt: now,
+//     attempts: 0,
+//   });
+
+//   console.log(`[auth] OTP for ${normalizedPhone}: ${code}`);
+
+//   const isProd = process.env.NODE_ENV === "production";
+
+//   return res.status(200).json({
+//     message: "OTP sent successfully",
+//     ...(isProd ? {} : { devOtp: code }),
+//   });
+// });
+
+export const sendPhoneOtpController = asyncHandler(async (req, res) => {
+  const normalizedPhone = normalizePhone(req.body.phone);
+
+  if (!normalizedPhone) {
+    return res.status(400).json({
+      message: "Please provide a valid phone number.",
+    });
   }
 
-  const normalizedPhone = normalizePhone(phone);
   const now = Date.now();
   const existing = otpStore.get(normalizedPhone);
 
@@ -183,39 +291,37 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     );
 
     return res.status(429).json({
-      message: `Please wait ${waitSeconds}s before requesting another code`,
+      message: `Please wait ${waitSeconds}s before requesting another code.`,
     });
   }
 
-  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
-  const otpHash = crypto.createHash("sha256").update(code).digest("hex");
+  const waResponse = await sendOTP(normalizedPhone);
 
-  // Send WhatsApp OTP
-  // const waResponse = await sendOTP(normalizedPhone, code);
+  if (!waResponse.success) {
+    return res.status(502).json({
+      message: "Failed to send OTP via WhatsApp. Please try again later.",
+      error:
+        process.env.NODE_ENV === "production" ? undefined : waResponse.error,
+    });
+  }
 
-  // If WhatsApp failed, don't save OTP
-  // if (!waResponse.success) {
-  //   return res.status(500).json({
-  //     message: "Failed to send OTP via WhatsApp. Please try again later.",
-  //     error: waResponse.error,
-  //   });
-  // }
+  const providerOtp = waResponse.data;
+  const providerExpiry = providerOtp.expiresAt
+    ? new Date(providerOtp.expiresAt).getTime()
+    : NaN;
 
-  // Save OTP only after successful WhatsApp send
   otpStore.set(normalizedPhone, {
-    code: otpHash,
-    expiresAt: now + OTP_TTL_MS,
+    id: providerOtp.id,
+    expiresAt:
+      Number.isFinite(providerExpiry) && providerExpiry > now
+        ? providerExpiry
+        : now + OTP_TTL_MS,
     lastSentAt: now,
     attempts: 0,
   });
 
-  console.log(`[auth] OTP for ${normalizedPhone}: ${code}`);
-
-  const isProd = process.env.NODE_ENV === "production";
-
   return res.status(200).json({
-    message: "OTP sent successfully",
-    ...(isProd ? {} : { devOtp: code }),
+    message: "OTP sent successfully on WhatsApp.",
   });
 });
 
@@ -300,7 +406,7 @@ export const signupWithPhoneController = asyncHandler(async (req, res) => {
   }
 
   // Verify the OTP first
-  const otpResult = consumeOtp(phone, otp);
+  const otpResult = await consumeOtp(phone, otp);
   if (!otpResult.ok) {
     return res.status(otpResult.status).json({ message: otpResult.message });
   }
@@ -416,7 +522,6 @@ export const loginController = asyncHandler(async (req, res) => {
 // @access  Public
 export const loginWithPhoneController = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
-  console.log(phone, otp, "phonephonephonephonephone");
 
   // Validation
   if (!phone || !otp) {
@@ -425,8 +530,10 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
     });
   }
 
+  console.log(phone, otp, "phonephonephonephonephone");
   // Verify the OTP first
-  const otpResult = consumeOtp(phone, otp);
+  const otpResult = await consumeOtp(phone, otp);
+  console.log(otpResult, "otpResultotpResultotpResultotpResult");
   if (!otpResult.ok) {
     return res.status(otpResult.status).json({ message: otpResult.message });
   }
@@ -435,9 +542,21 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
 
   console.log(normalizedPhone, "normalizedPhonenormalizedPhonenormalizedPhone");
 
-  // Find user
+  // // Find user
+  // const user = await prisma.user.findUnique({
+  //   where: { phone: normalizedPhone },
+  //   include: {
+  //     role: true,
+  //   },
+  // });
+
+  // Convert +917204474711 to 7204474711 for existing DB records
+  const phoneForLookup = normalizedPhone.startsWith("+91")
+    ? normalizedPhone.slice(3)
+    : normalizedPhone;
+
   const user = await prisma.user.findUnique({
-    where: { phone: normalizedPhone },
+    where: { phone: phoneForLookup },
     include: {
       role: true,
     },

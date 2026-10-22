@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
+import Loader from "@/components/ui/Loader";
 import type { UserProfile } from "@/types/profile";
 
 function getInitials(name: string) {
@@ -47,7 +48,7 @@ export default function ProfilePage() {
   if (loading) return (
     <Wrapper>
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin" />
+        <Loader size={48} />
       </div>
     </Wrapper>
   );

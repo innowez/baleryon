@@ -23,6 +23,10 @@ export const getOrderTrackingController = asyncHandler(async (req, res) => {
               },
             },
           },
+          // NOTE: this was previously missing, so order.items[].variant was
+          // always undefined on the client (blank size/color everywhere,
+          // and the exchange flow had no way to know the current variant).
+          variant: true,
         },
       },
       payments: true,

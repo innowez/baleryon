@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Lock, Phone } from "lucide-react";
+import Loader from "@/components/ui/Loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -154,7 +155,7 @@ export default function LoginPage() {
           </div>
 
           {/* Social Login Buttons */}
-          <div className="space-y-3 mb-6">
+          {/* <div className="space-y-3 mb-6">
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
@@ -179,7 +180,7 @@ export default function LoginPage() {
                 />
               </svg>
               Continue with Google
-            </button>
+            </button> */}
 
             {/* <button
               onClick={() => switchMethod("phone")}
@@ -189,10 +190,10 @@ export default function LoginPage() {
               <Phone className="w-5 h-5" />
               Continue with Phone Number
             </button> */}
-          </div>
+          {/* </div> */}
 
           {/* Divider */}
-          <div className="relative mb-6">
+          {/* <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
@@ -201,7 +202,7 @@ export default function LoginPage() {
                 OR
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && (
@@ -359,7 +360,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className="w-full bg-[#0F0F0F] text-white py-3.5 rounded-xl font-semibold hover:bg-[#2F2F2F] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Sending OTP..." : "Send OTP"}
+                  {isLoading ? <Loader size={16} label="Sending OTP..." /> : "Send OTP"}
                 </button>
               </div>
             </form>
@@ -400,7 +401,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className="w-full bg-[#0F0F0F] text-white py-3.5 rounded-xl font-semibold hover:bg-[#2F2F2F] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Verifying..." : "Verify & Login"}
+                  {isLoading ? <Loader size={16} label="Verifying..." /> : "Verify & Login"}
                 </button>
 
                 {/* Secondary actions */}

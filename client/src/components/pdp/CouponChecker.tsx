@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { apiPost } from "@/lib/api";
+import Loader from "@/components/ui/Loader";
 
 interface CouponResponse {
   valid: boolean;
@@ -90,7 +91,7 @@ export default function CouponChecker({ subtotal, onApply }: Props) {
             disabled={!code || loading}
             className="rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : "Apply"}
+            {loading ? <Loader size={16} /> : "Apply"}
           </button>
         </div>
       ) : (

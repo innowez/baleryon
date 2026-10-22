@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
+import Loader from "@/components/ui/Loader";
 import type { Order } from "@/types/order";
 
 type FilterKey = "ALL" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
@@ -68,7 +69,7 @@ export default function OrdersPage() {
 
           {loading ? (
             <div className="py-20 flex justify-center">
-              <div className="w-7 h-7 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              <Loader size={48} />
             </div>
           ) : (
             <>

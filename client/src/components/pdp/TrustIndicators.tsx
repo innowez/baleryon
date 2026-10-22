@@ -11,8 +11,8 @@ export default function TrustIndicators() {
     },
     {
       icon: RotateCcw,
-      label: "Easy Returns",
-      description: "30-day return policy",
+      label: "Easy Exchanges",
+      description: "Exchange within 2 days",
     },
     {
       icon: Award,

@@ -9,7 +9,10 @@ import {
   Edit2,
   Trash2,
   MapPin,
-  // CreditCard,
+  CreditCard,
+  Truck,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -17,7 +20,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { AddressForm } from "@/components/AddressForm";
-import { createOrder } from "@/lib/orderApi";
+import { createOrder, type PaymentMethod } from "@/lib/orderApi";
 import {
   // loadRazorpayScript,
   // RazorpayFailedResponse,
@@ -27,9 +30,10 @@ import {
 } from "@/lib/razorpay";
 import GuestAuth from "./GuestAuth";
 import { useCheckoutStore } from "@/store/useCheckoutStore";
-import { apiPost } from "@/lib/api";
+import { apiFetch, apiPost } from "@/lib/api";
 import { Address } from "@/lib/addressApi";
 import CouponChecker from "@/components/pdp/CouponChecker";
+import Loader from "@/components/ui/Loader";
 import { useRouter } from "next/navigation";
 
 declare global {
@@ -40,19 +44,28 @@ declare global {
 
 export {};
 
-type DirectBuyItem = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
-
 type RazorpayFailedError = {
   code: string;
   description: string;
   source: string;
   step: string;
   reason: string;
+};
+
+interface DeliveryCheckResponse {
+  available: boolean;
+  cod?: boolean;
+  city?: string;
+  state?: string;
+  message?: string;
+}
+
+type CodEligibility = {
+  pincode: string;
+  loading: boolean;
+  available: boolean;
+  codAvailable: boolean;
+  message: string;
 };
 
 export default function CheckoutPage() {
@@ -78,6 +91,7 @@ export default function CheckoutPage() {
     ? [
         {
           id: buyNowItem.productId,
+          productId: buyNowItem.productId,
           name: buyNowItem.name,
           price: buyNowItem.price,
           quantity: buyNowItem.quantity,
@@ -121,23 +135,99 @@ export default function CheckoutPage() {
     getSelectedAddress,
   } = useAddressStore();
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<string | "razorpay">(
-    "razorpay",
-  );
+  const [selectedPayment, setSelectedPayment] =
+    useState<PaymentMethod>("razorpay");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [codEligibility, setCodEligibility] = useState<CodEligibility | null>(
+    null,
+  );
 
   const selectedAddress = getSelectedAddress();
   const isAddressSelected = selectedAddressId !== null;
   const router = useRouter();
-  console.log(
-    addresses,
-    "addressesaddressesaddressesaddressesaddressesaddresses",
-  );
+
+  // ── Check COD eligibility whenever the selected address (pincode)
+  // changes. Cached by pincode so switching back and forth between
+  // addresses, or re-rendering, never fires duplicate Delhivery requests.
+  useEffect(() => {
+    const pincode = selectedAddress?.postalCode?.trim();
+
+    if (!pincode) {
+      setCodEligibility(null);
+      return;
+    }
+
+    if (codEligibility?.pincode === pincode && !codEligibility.loading) {
+      return;
+    }
+
+    let cancelled = false;
+    setCodEligibility({
+      pincode,
+      loading: true,
+      available: false,
+      codAvailable: false,
+      message: "",
+    });
+
+    apiFetch<DeliveryCheckResponse>(`/api/delivery/check/${pincode}`)
+      .then((data) => {
+        if (cancelled) return;
+        setCodEligibility({
+          pincode,
+          loading: false,
+          available: !!data.available,
+          codAvailable: !!data.cod,
+          message: data.message || "",
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCodEligibility({
+          pincode,
+          loading: false,
+          available: false,
+          codAvailable: false,
+          message: "Unable to check delivery availability for this address",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddress?.postalCode]);
+
+  // If COD becomes unavailable for the currently selected address, fall
+  // back to Razorpay instead of leaving an unselectable option chosen.
+  useEffect(() => {
+    if (
+      selectedPayment === "cod" &&
+      codEligibility &&
+      !codEligibility.loading &&
+      !codEligibility.codAvailable
+    ) {
+      setSelectedPayment("razorpay");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codEligibility]);
 
   const handlePlaceOrder = async () => {
+    if (isPlacingOrder) return; // guard against duplicate submissions
+
     try {
-      if (!selectedAddress || !selectedPayment) return;
+      if (!selectedAddress) {
+        toast.warning("Please select a delivery address.");
+        return;
+      }
+
+      if (selectedPayment === "cod" && !codEligibility?.codAvailable) {
+        toast.error(
+          "Cash on Delivery is not available for this address. Please choose online payment.",
+        );
+        return;
+      }
 
       setIsPlacingOrder(true);
 
@@ -149,7 +239,7 @@ export default function CheckoutPage() {
         totalAmount: totalPrice,
         paymentMethod: selectedPayment,
 
-        couponCode,
+        couponCode: couponCode || null,
         discountAmount,
       });
 
@@ -158,54 +248,68 @@ export default function CheckoutPage() {
           throw new Error("Razorpay order not created");
         }
 
-        const order = result.razorpayOrder;
-        // const order_id = result?.order;
+        const razorpayOrder = result.razorpayOrder;
+        const orderId = result.order.id;
 
         const options: RazorpayOptions = {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-          amount: order.amount,
+          amount: razorpayOrder.amount,
           currency: "INR",
           name: "Balryon",
           description: "Order Payment",
-          order_id: order.id,
+          order_id: razorpayOrder.id,
 
           handler: async (response) => {
-            await apiPost("/api/orders/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            try {
+              await apiPost("/api/orders/verify-payment", {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                // orderId: result.orderId,
-                orderId: result,
-              }),
-            });
+                orderId,
+              });
 
-            clearCart();
-            clearBuyNowItem();
+              clearCart();
+              clearBuyNowItem();
+              toast.success("Order placed successfully!");
+              router.push(`/orders/${orderId}`);
+            } catch (verifyErr) {
+              console.error(verifyErr);
+              toast.error(
+                verifyErr instanceof Error
+                  ? verifyErr.message
+                  : "Payment verification failed. Please contact support.",
+              );
+            }
           },
 
           theme: { color: "#0F0F0F" },
         };
-        console.log(
-          options,
-          "optionsoptionsoptionsoptionsoptionsoptionsoptions",
-        );
+
         const rzp = new window.Razorpay(options);
 
         rzp.on("payment.failed", (res: { error: RazorpayFailedError }) => {
           console.error("Payment failed:", res.error);
+          toast.error(
+            res.error?.description || "Payment failed. Please try again.",
+          );
         });
 
         rzp.open();
         return;
       }
 
+      // ── Cash on Delivery: order is already created, no gateway step ──
       clearCart();
       clearBuyNowItem();
+      toast.success("Order placed successfully! Pay on delivery.");
+      router.push(`/orders/${result.order.id}`);
     } catch (err) {
       console.error(err);
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while placing your order. Please try again.",
+      );
     } finally {
       setIsPlacingOrder(false);
     }
@@ -247,6 +351,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] py-6 sm:py-10 pb-20 sm:pb-0">
+      {isPlacingOrder && <Loader fullScreen label="Placing your order..." />}
+
       <div className="container-max">
         <div className="flex items-center gap-3 mb-8">
           <button
@@ -318,12 +424,6 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
                           <button
-                            // onClick={(e) => {
-                            //   e.stopPropagation();
-                            //   setEditingAddress(address as Address);
-                            //   setShowAddressForm(true);
-                            // }}
-
                             onClick={(e) => {
                               e.stopPropagation();
 
@@ -371,22 +471,21 @@ export default function CheckoutPage() {
             </motion.div>
 
             {/* Payment Section */}
-            {/* {isAddressSelected && (
+            {isAddressSelected && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="bg-white rounded-2xl p-4 sm:p-6"
-              > */}
-            {/* <div className="flex items-center gap-2 mb-4">
+              >
+                <div className="flex items-center gap-2 mb-4">
                   <CreditCard size={20} className="text-[#FF3B30]" />
                   <h2 className="text-lg font-bold">Payment Method</h2>
-                </div> */}
+                </div>
 
-            {/* Payment Options */}
-            {/* <div className="space-y-3"> */}
-            {/* Razorpay */}
-            {/* <motion.button
+                <div className="space-y-3">
+                  {/* Razorpay */}
+                  <motion.button
                     layout
                     onClick={() => setSelectedPayment("razorpay")}
                     className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
@@ -401,10 +500,10 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm sm:text-base">
-                          Razorpay
+                          Online Payment
                         </p>
                         <p className="text-xs text-[#6B7280]">
-                          All major cards, UPI, NetBanking
+                          Cards, UPI, NetBanking via Razorpay
                         </p>
                       </div>
                       <div
@@ -419,82 +518,67 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     </div>
-                  </motion.button> */}
+                  </motion.button>
 
-            {/* Pay via Card */}
-            {/* <motion.button
+                  {/* Cash on Delivery */}
+                  <motion.button
                     layout
-                    onClick={() => setSelectedPayment("card")}
+                    type="button"
+                    disabled={!codEligibility?.codAvailable}
+                    onClick={() => {
+                      if (!codEligibility?.codAvailable) return;
+                      setSelectedPayment("cod");
+                    }}
                     className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
-                      selectedPayment === "card"
-                        ? "border-[#0F0F0F] bg-[#F5F5F5]"
-                        : "border-[#E5E5E5] hover:border-[#D1D5DB]"
+                      !codEligibility?.codAvailable
+                        ? "border-[#E5E5E5] opacity-50 cursor-not-allowed"
+                        : selectedPayment === "cod"
+                          ? "border-[#0F0F0F] bg-[#F5F5F5]"
+                          : "border-[#E5E5E5] hover:border-[#D1D5DB]"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#FF3B30] rounded-lg flex items-center justify-center text-white">
-                        💳
+                        <Truck size={18} />
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm sm:text-base">
-                          Credit/Debit Card
+                          Cash on Delivery
                         </p>
-                        <p className="text-xs text-[#6B7280]">
-                          Visa, Mastercard, American Express
+                        <p className="text-xs text-[#6B7280] flex items-center gap-1">
+                          {codEligibility?.loading ? (
+                            <Loader size={14} label="Checking availability..." />
+                          ) : codEligibility?.codAvailable ? (
+                            <>
+                              <Check size={12} className="text-green-600" />
+                              Available for your address
+                            </>
+                          ) : codEligibility ? (
+                            <>
+                              <X size={12} className="text-red-500" />
+                              Not available for this pincode
+                            </>
+                          ) : (
+                            "Select an address to check availability"
+                          )}
                         </p>
                       </div>
                       <div
                         className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all ${
-                          selectedPayment === "card"
+                          selectedPayment === "cod"
                             ? "border-[#0F0F0F] bg-[#0F0F0F]"
                             : "border-[#D1D5DB]"
                         }`}
                       >
-                        {selectedPayment === "card" && (
+                        {selectedPayment === "cod" && (
                           <div className="w-2 h-2 bg-white rounded-full" />
                         )}
                       </div>
                     </div>
-                  </motion.button> */}
-
-            {/* UPI */}
-            {/* <motion.button
-                    layout
-                    onClick={() => setSelectedPayment("upi")}
-                    className={`w-full p-4 border-2 rounded-xl transition-all text-left ${
-                      selectedPayment === "upi"
-                        ? "border-[#0F0F0F] bg-[#F5F5F5]"
-                        : "border-[#E5E5E5] hover:border-[#D1D5DB]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#0F0F0F] rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        UPI
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm sm:text-base">
-                          UPI Payment
-                        </p>
-                        <p className="text-xs text-[#6B7280]">
-                          Google Pay, PhonePe, Paytm
-                        </p>
-                      </div>
-                      <div
-                        className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all ${
-                          selectedPayment === "upi"
-                            ? "border-[#0F0F0F] bg-[#0F0F0F]"
-                            : "border-[#D1D5DB]"
-                        }`}
-                      >
-                        {selectedPayment === "upi" && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                        )}
-                      </div>
-                    </div>
-                  </motion.button> */}
-            {/* </div>
-              </motion.div> */}
-            {/* )} */}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Order Summary */}
@@ -576,18 +660,23 @@ export default function CheckoutPage() {
               {/* Place Order Button */}
               <motion.button
                 disabled={
-                  !isAddressSelected || !selectedPayment || isPlacingOrder
+                  !isAddressSelected ||
+                  !selectedPayment ||
+                  isPlacingOrder ||
+                  (selectedPayment === "cod" && !codEligibility?.codAvailable)
                 }
                 onClick={handlePlaceOrder}
-                className="w-full bg-[#0F0F0F] text-white py-3 rounded-xl font-semibold hover:bg-[#0F0F0F]/90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+                className="w-full bg-[#0F0F0F] text-white py-3 rounded-xl font-semibold hover:bg-[#0F0F0F]/90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                {isPlacingOrder
-                  ? "Processing..."
-                  : !isAddressSelected
-                    ? "Add Address First"
-                    : !selectedPayment
-                      ? "Select Payment Method"
-                      : "Place Order"}
+                {isPlacingOrder ? (
+                  <Loader size={20} label="Processing..." />
+                ) : !isAddressSelected ? (
+                  "Add Address First"
+                ) : !selectedPayment ? (
+                  "Select Payment Method"
+                ) : (
+                  "Place Order"
+                )}
               </motion.button>
 
               <p className="text-xs text-[#6B7280] text-center mt-3">

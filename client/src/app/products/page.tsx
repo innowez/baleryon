@@ -18,6 +18,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { Pagination } from "@/components/products/Pagination";
 import { FilterDrawer } from "@/components/products/FilterDrawer";
 import { AnimatePresence } from "motion/react";
+import Loader from "@/components/ui/Loader";
 import { SlidersHorizontal } from "lucide-react";
 import { fetchShopFilterOptions, fetchShopProducts } from "@/lib/productsApi";
 import type {
@@ -233,7 +234,7 @@ export default function ProductsPage() {
 
   return (
     <>
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<Loader fullScreen label="Loading products..." />}>
       <AnnouncementBar />
       <Header variant="solid" />
 

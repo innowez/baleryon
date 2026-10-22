@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 
 import { Header } from "@/components/Header";
@@ -9,34 +9,56 @@ import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 
 import { fetchOrderTracking } from "@/lib/ordersApi";
+import { fetchOrderExchangeRequests } from "@/lib/exchangeApi";
 import type { OrderTrackingResponse } from "@/types/order";
+import type { ExchangeRequest } from "@/types/exchange";
 
 import { OrderItems } from "../OrderItems";
+import { OrderProductReviewRow } from "../OrderProductReviewRow";
+import { OrderProductExchangeRow } from "../OrderProductExchangeRow";
+import Loader from "@/components/ui/Loader";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function OrderDetailsPage() {
   const params = useParams();
   const orderId = params.orderId as string;
+  const { user } = useAuthStore();
 
   const [data, setData] = useState<OrderTrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exchangeRequests, setExchangeRequests] = useState<
+    Record<string, ExchangeRequest>
+  >({});
 
+  const loadExchangeRequests = useCallback(() => {
+    if (!orderId) return;
+    fetchOrderExchangeRequests(orderId)
+      .then((res) => {
+        const map: Record<string, ExchangeRequest> = {};
+        for (const r of res.exchangeRequests) {
+          map[r.orderItemId] = r;
+        }
+        setExchangeRequests(map);
+      })
+      .catch(() => {
+        // Non-fatal: the page still works without exchange status, the
+        // "Request Exchange" button just won't reflect existing requests
+        // until the next load.
+      });
+  }, [orderId]);
 
-  console.log(data,"datadatadatadatadatadatadatadata");
-  
   useEffect(() => {
     if (!orderId) return;
 
     fetchOrderTracking(orderId)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [orderId]);
+
+    loadExchangeRequests();
+  }, [orderId, loadExchangeRequests]);
 
   if (loading) {
-    return (
-      <div className="pt-40 text-center text-[#6B7280]">
-        Loading order details...
-      </div>
-    );
+    return <Loader fullScreen label="Loading order details..." />;
   }
 
   if (!data) {
@@ -48,9 +70,6 @@ export default function OrderDetailsPage() {
   }
 
   const { order, trackingSteps } = data;
-
-  console.log(order,"orderorderorderorderorderorderorder");
-  
 
   return (
     <>
@@ -124,6 +143,29 @@ export default function OrderDetailsPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Items */}
               <OrderItems items={order.items} />
+
+              {/* Reviews & Exchanges */}
+              {user?.id && (
+                <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6">
+                  <h2 className="font-semibold mb-4">
+                    Reviews &amp; Exchanges
+                  </h2>
+
+                  <div className="space-y-3">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="space-y-2">
+                        <OrderProductReviewRow item={item} />
+                        <OrderProductExchangeRow
+                          item={item}
+                          userId={user.id}
+                          exchangeRequest={exchangeRequests[item.id] ?? null}
+                          onChanged={loadExchangeRequests}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Shipping */}
               <div className="bg-white border rounded-3xl p-6">

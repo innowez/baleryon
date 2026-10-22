@@ -235,6 +235,7 @@ model Order {
   paymentMethod  String?       @map("payment_method") @db.VarChar(50)
   notes          String?
   placedAt       DateTime      @default(now()) @map("placed_at")
+  deliveredAt    DateTime?     @map("delivered_at")
   shipments      Shipment[]
   items          OrderItem[]
   address        Address?      @relation(fields: [addressId], references: [id])
@@ -328,13 +329,21 @@ model Shipment {
 }
 
 model OrderReturn {
-  id           String       @id @default(uuid()) @db.Uuid
-  orderItemId  String       @map("order_item_id") @db.Uuid
-  reason       String?
-  status       ReturnStatus @default(REQUESTED)
-  refundAmount Decimal?     @map("refund_amount") @db.Decimal(10, 2)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+  id                    String       @id @default(uuid()) @db.Uuid
+  orderItemId           String       @map("order_item_id") @db.Uuid
+  type                  ReturnType   @default(EXCHANGE)
+  reason                String?
+  status                ReturnStatus @default(REQUESTED)
+  refundAmount          Decimal?     @map("refund_amount") @db.Decimal(10, 2)
+  // Exchange-specific fields (only meaningful when type = EXCHANGE)
+  desiredVariantId      String?      @map("desired_variant_id") @db.Uuid
+  adminNote             String?      @map("admin_note")
+  pickupShipmentId      String?      @map("pickup_shipment_id") @db.Uuid
+  replacementShipmentId String?      @map("replacement_shipment_id") @db.Uuid
+  respondedAt           DateTime?    @map("responded_at")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  orderItem             OrderItem    @relation(fields: [orderItemId], references: [id])
 
   @@map("returns")
 }
@@ -474,6 +483,11 @@ enum ReturnStatus {
   REJECTED
   REFUNDED
   COMPLETED
+}
+
+enum ReturnType {
+  EXCHANGE
+  REFUND
 }
 
 enum AnalyticsEventName {

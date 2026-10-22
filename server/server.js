@@ -15,6 +15,7 @@ import orderTrackingRouter from "./routes/orderTrackerRouter.js";
 import addressesRouter from "./routes/addressRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
+import exchangeRoutes from "./routes/exchangeRoutes.js"
 // landing
 import categoryRoute from "./routes//landing/categoryRoute.js";
 import limitedSeasonRoute from "./routes/landing/limitedSeasonRoute.js";
@@ -64,6 +65,7 @@ app.use("/api/orders", orderRouter);
 app.use("/api/viewOrders", orderTrackingRouter);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/exchange", exchangeRoutes);
 app.use("/api/category", categoryRoute);
 app.use("/api/limited-season", limitedSeasonRoute);
 app.use("/api/banner", BannerRouter);
