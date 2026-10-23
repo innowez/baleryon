@@ -41,8 +41,8 @@ function createDefaultFilters(priceMax: number): FilterState {
   };
 }
 
-export default function ProductsPage() {
-  const searchParams = useSearchParams(); 
+function ProductsContent() {
+  const searchParams = useSearchParams();
   const categoryFromUrl = searchParams.get("category");
   const [filterOptions, setFilterOptions] = useState<ShopFilterOptions | null>(
     null,
@@ -234,8 +234,7 @@ export default function ProductsPage() {
 
   return (
     <>
-    <Suspense fallback={<Loader fullScreen label="Loading products..." />}>
-      <AnnouncementBar />
+    <AnnouncementBar />
       <Header variant="solid" />
 
       <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-10">
@@ -364,7 +363,15 @@ export default function ProductsPage() {
 
       <Footer />
       <BottomNav />
-      </Suspense>
+
     </>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<Loader fullScreen label="Loading products..." />}>
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -8,7 +8,7 @@ import { CategoryGrid } from "@/components/CategoryGrid";
 import { NewArrivals } from "@/components/NewArrivals";
 import { PromotionalBanner } from "@/components/PromotionalBanner";
 import { BestSellers } from "@/components/BestSellers";
-import { EditorialLookbook } from "@/components/EditorialLookbook";
+// import { EditorialLookbook } from "@/components/EditorialLookbook";
 import { InstagramGrid } from "@/components/InstagramGrid";
 import { Newsletter } from "@/components/Newsletter";
 import { Footer } from "@/components/Footer";
