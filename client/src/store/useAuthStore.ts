@@ -32,11 +32,12 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   /** Request an OTP for the given phone number. Returns the dev OTP in non-prod. */
   requestPhoneOtp: (phone: string) => Promise<string | undefined>;
+  requestSignupPhoneOtp: (phone: string) => Promise<string | undefined>;
   /** Register a new account with phone + OTP. */
   signupWithPhone: (
     phone: string,
     otp: string,
-    fullName: string
+    fullName: string,
   ) => Promise<void>;
   /** Log an existing user in with phone + OTP. */
   loginWithPhone: (phone: string, otp: string) => Promise<void>;
@@ -98,6 +99,16 @@ export const useAuthStore = create<AuthState>()(
         const data = await apiPost<SendOtpResponse>("/api/auth/send-otp", {
           phone,
         });
+
+        return data.devOtp;
+      },
+
+      requestSignupPhoneOtp: async (phone: string) => {
+        const data = await apiPost<SendOtpResponse>(
+          "/api/auth/signup/send-otp",
+          { phone },
+        );
+      
         return data.devOtp;
       },
 
@@ -135,6 +146,6 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         isLoggedIn: state.isLoggedIn,
       }),
-    }
-  )
+    },
+  ),
 );

@@ -4,11 +4,13 @@ import {
   signupWithPhoneController,
   loginController,
   loginWithPhoneController,
-  sendPhoneOtpController,
   getMeController,
   googleAuthController,
   googleCallbackController,
+  sendSignupPhoneOtpController,
+  sendPhoneOtpController
 } from "../controller/authController.js";
+
 import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -21,6 +23,8 @@ router.post("/login", loginController);
 router.post("/send-otp", sendPhoneOtpController);
 router.post("/signup/phone", signupWithPhoneController);
 router.post("/login/phone", loginWithPhoneController);
+
+router.post("/signup/send-otp", sendSignupPhoneOtpController);
 
 // Google OAuth routes
 router.get("/google", googleAuthController);

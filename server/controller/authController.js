@@ -277,74 +277,6 @@ async function consumeOtp(rawPhone, code) {
 //   });
 // });
 
-// export const sendPhoneOtpController = asyncHandler(async (req, res) => {
-//   const normalizedPhone = normalizePhone(req.body.phone);
-
-//   if (!normalizedPhone) {
-//     return res.status(400).json({
-//       message: "Please provide a valid phone number.",
-//     });
-//   }
-
-//   const now = Date.now();
-//   const existing = await redis.get(`otp:${normalizedPhone}`);
-
-//   if (existing && now - existing.lastSentAt < OTP_RESEND_INTERVAL_MS) {
-//     const waitSeconds = Math.ceil(
-//       (OTP_RESEND_INTERVAL_MS - (now - existing.lastSentAt)) / 1000,
-//     );
-
-//     return res.status(429).json({
-//       message: `Please wait ${waitSeconds}s before requesting another code.`,
-//     });
-//   }
-
-//   const waResponse = await sendOTP(normalizedPhone);
-
-//   if (!waResponse.success) {
-//     return res.status(502).json({
-//       message: "Failed to send OTP via WhatsApp. Please try again later.",
-//       error:
-//         process.env.NODE_ENV === "production" ? undefined : waResponse.error,
-//     });
-//   }
-
-//   const providerOtp = waResponse.data;
-//   const providerExpiry = providerOtp.expiresAt
-//     ? new Date(providerOtp.expiresAt).getTime()
-//     : NaN;
-
-//   // otpStore.set(normalizedPhone, {
-//   //   id: providerOtp.id,
-//   //   expiresAt:
-//   //     Number.isFinite(providerExpiry) && providerExpiry > now
-//   //       ? providerExpiry
-//   //       : now + OTP_TTL_MS,
-//   //   lastSentAt: now,
-//   //   attempts: 0,
-//   // });
-
-//   await redis.set(
-//     `otp:${normalizedPhone}`,
-//     JSON.stringify({
-//       id: providerOtp.id,
-//       expiresAt:
-//         Number.isFinite(providerExpiry) && providerExpiry > now
-//           ? providerExpiry
-//           : now + OTP_TTL_MS,
-//       lastSentAt: now,
-//       attempts: 0,
-//     }),
-//     {
-//       PX: OTP_TTL_MS,
-//     }
-//   );
-
-//   return res.status(200).json({
-//     message: "OTP sent successfully on WhatsApp.",
-//   });
-// });
-
 export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   const normalizedPhone = normalizePhone(req.body.phone);
 
@@ -471,6 +403,112 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     message: "OTP sent successfully on WhatsApp.",
   });
 });
+
+export const sendSignupPhoneOtpController = asyncHandler(
+  async (req, res) => {
+    const normalizedPhone = normalizePhone(req.body.phone);
+
+    if (!normalizedPhone) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid phone number.",
+      });
+    }
+
+    // Check whether the phone is already registered
+    const digits = normalizedPhone.replace(/\D/g, "");
+    const phoneForLookup =
+      digits.length === 12 && digits.startsWith("91")
+        ? digits.slice(2)
+        : digits;
+
+    const phoneVariants = [
+      phoneForLookup,
+      normalizedPhone,
+      `+91${phoneForLookup}`,
+    ];
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        phone: {
+          in: [...new Set(phoneVariants)],
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        code: "USER_ALREADY_EXISTS",
+        message: "This phone number is already registered. Please log in.",
+      });
+    }
+
+    // Only send OTP to new users
+    const now = Date.now();
+    const existingOtp = await redis.get(`otp:${normalizedPhone}`);
+
+    if (existingOtp) {
+      const otpData =
+        typeof existingOtp === "string"
+          ? JSON.parse(existingOtp)
+          : existingOtp;
+
+      if (
+        otpData.lastSentAt &&
+        now - otpData.lastSentAt < OTP_RESEND_INTERVAL_MS
+      ) {
+        const waitSeconds = Math.ceil(
+          (OTP_RESEND_INTERVAL_MS -
+            (now - otpData.lastSentAt)) /
+            1000,
+        );
+
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${waitSeconds}s before requesting another code.`,
+        });
+      }
+    }
+
+    const waResponse = await sendOTP(normalizedPhone);
+
+    if (!waResponse.success) {
+      return res.status(502).json({
+        success: false,
+        message: "Failed to send OTP via WhatsApp. Please try again later.",
+      });
+    }
+
+    const providerOtp = waResponse.data;
+    const providerExpiry = providerOtp.expiresAt
+      ? new Date(providerOtp.expiresAt).getTime()
+      : NaN;
+
+    await redis.set(
+      `otp:${normalizedPhone}`,
+      JSON.stringify({
+        id: providerOtp.id,
+        expiresAt:
+          Number.isFinite(providerExpiry) && providerExpiry > now
+            ? providerExpiry
+            : now + OTP_TTL_MS,
+        lastSentAt: now,
+        attempts: 0,
+      }),
+      { PX: OTP_TTL_MS },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Signup OTP sent successfully on WhatsApp.",
+    });
+  },
+);
+
 
 // @desc    Register a new user with email
 // @route   POST /api/auth/signup
