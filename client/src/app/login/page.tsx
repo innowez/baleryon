@@ -55,26 +55,68 @@ export default function LoginPage() {
   //   }
   // };
 
+  // const handleSendOtp = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   if (!formData.phone.trim()) {
+  //     setError("Phone number is required");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   setError("");
+
+  //   try {
+  //     const devOtp = await requestPhoneOtp(formData.phone);
+  //     setOtpInfo(
+  //       devOtp
+  //         ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
+  //         : `We sent a 6-digit code to ${formData.phone}.`,
+  //     );
+  //     setPhoneStep("otp");
+  //   } catch (err) {
+  //     setError(
+  //       err instanceof Error
+  //         ? err.message
+  //         : "Could not send OTP. Please try again.",
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!formData.phone.trim()) {
       setError("Phone number is required");
       return;
     }
-
+  
     setIsLoading(true);
     setError("");
-
+    setOtpInfo("");
+  
     try {
       const devOtp = await requestPhoneOtp(formData.phone);
+  
       setOtpInfo(
         devOtp
-          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
+          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP: ${devOtp}`
           : `We sent a 6-digit code to ${formData.phone}.`,
       );
+  
       setPhoneStep("otp");
-    } catch (err) {
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      // Redirect to signup if the phone number is not registered
+      if (error.code === "USER_NOT_FOUND") {
+        router.push(
+          `/signup?phone=${encodeURIComponent(formData.phone)}`,
+        );
+        return;
+      }
+  
       setError(
         err instanceof Error
           ? err.message
@@ -84,7 +126,7 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
+  
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
 
