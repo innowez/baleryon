@@ -30,7 +30,8 @@ const OTP_RESEND_INTERVAL_MS = 30 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
 
 // Stores the provider's OTP ID, not the actual OTP code.
-const otpStore = new Map();
+// const otpStore = new Map();
+import redis from "../services/redis.js";
 
 function normalizePhone(phone) {
   const raw = String(phone ?? "").trim();
@@ -73,7 +74,13 @@ async function consumeOtp(rawPhone, code) {
     };
   }
 
-  const entry = otpStore.get(phone);
+  const storedOtp = await redis.get(`otp:${phone}`);
+
+  const entry = storedOtp
+    ? JSON.parse(storedOtp)
+    : null;
+  console.log(entry, "entryentryentryentryentry");
+  
 
   if (!entry) {
     return {
@@ -85,8 +92,7 @@ async function consumeOtp(rawPhone, code) {
   }
 
   if (Date.now() > entry.expiresAt) {
-    otpStore.delete(phone);
-
+    await redis.del(`otp:${phone}`);
     return {
       ok: false,
       status: 400,
@@ -96,8 +102,7 @@ async function consumeOtp(rawPhone, code) {
   }
 
   if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
-    otpStore.delete(phone);
-
+    await redis.del(`otp:${phone}`);
     return {
       ok: false,
       status: 429,
@@ -123,8 +128,8 @@ async function consumeOtp(rawPhone, code) {
     }
 
     if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
-      otpStore.delete(phone);
-    }
+      await redis.del(`otp:${phone}`);
+        }
 
     return {
       ok: false,
@@ -136,8 +141,8 @@ async function consumeOtp(rawPhone, code) {
 
   if (!result.verified) {
     if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
-      otpStore.delete(phone);
-    }
+      await redis.del(`otp:${phone}`);
+        }
 
     return {
       ok: false,
@@ -147,8 +152,7 @@ async function consumeOtp(rawPhone, code) {
     };
   }
 
-  otpStore.delete(phone);
-
+  await redis.del(`otp:${phone}`);
   return {
     ok: true,
     status: 200,
@@ -283,7 +287,7 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   }
 
   const now = Date.now();
-  const existing = otpStore.get(normalizedPhone);
+  const existing = await redis.get(`otp:${normalizedPhone}`);
 
   if (existing && now - existing.lastSentAt < OTP_RESEND_INTERVAL_MS) {
     const waitSeconds = Math.ceil(
@@ -310,15 +314,31 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     ? new Date(providerOtp.expiresAt).getTime()
     : NaN;
 
-  otpStore.set(normalizedPhone, {
-    id: providerOtp.id,
-    expiresAt:
-      Number.isFinite(providerExpiry) && providerExpiry > now
-        ? providerExpiry
-        : now + OTP_TTL_MS,
-    lastSentAt: now,
-    attempts: 0,
-  });
+  // otpStore.set(normalizedPhone, {
+  //   id: providerOtp.id,
+  //   expiresAt:
+  //     Number.isFinite(providerExpiry) && providerExpiry > now
+  //       ? providerExpiry
+  //       : now + OTP_TTL_MS,
+  //   lastSentAt: now,
+  //   attempts: 0,
+  // });
+
+  await redis.set(
+    `otp:${normalizedPhone}`,
+    JSON.stringify({
+      id: providerOtp.id,
+      expiresAt:
+        Number.isFinite(providerExpiry) && providerExpiry > now
+          ? providerExpiry
+          : now + OTP_TTL_MS,
+      lastSentAt: now,
+      attempts: 0,
+    }),
+    {
+      PX: OTP_TTL_MS,
+    }
+  );
 
   return res.status(200).json({
     message: "OTP sent successfully on WhatsApp.",
