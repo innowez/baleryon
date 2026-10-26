@@ -133,10 +133,13 @@ export default function SignupPage() {
 
     try {
       await signupWithPhone(formData.phone, formData.otp, formData.fullName);
+
       router.push("/");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Signup failed. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Authentication failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -217,7 +220,7 @@ export default function SignupPage() {
               Continue with Google
             </button> */}
 
-            {/* <button
+          {/* <button
               onClick={() => switchMethod("phone")}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 px-6 py-3.5 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -503,7 +506,11 @@ export default function SignupPage() {
                   disabled={isLoading}
                   className="w-full bg-[#0F0F0F] text-white py-3.5 rounded-xl font-semibold hover:bg-[#2F2F2F] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? <Loader size={16} label="Sending OTP..." /> : "Send OTP"}
+                  {isLoading ? (
+                    <Loader size={16} label="Sending OTP..." />
+                  ) : (
+                    "Send OTP"
+                  )}
                 </button>
               </div>
             </form>
@@ -564,7 +571,11 @@ export default function SignupPage() {
                   disabled={isLoading}
                   className="w-full bg-[#0F0F0F] text-white py-3.5 rounded-xl font-semibold hover:bg-[#2F2F2F] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? <Loader size={16} label="Verifying..." /> : "Verify & Create Account"}
+                  {isLoading ? (
+                    <Loader size={16} label="Verifying..." />
+                  ) : (
+                    "Verify & Create Account"
+                  )}
                 </button>
 
                 {/* Secondary actions */}

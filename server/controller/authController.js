@@ -415,66 +415,190 @@ export const signupController = asyncHandler(async (req, res) => {
 // @desc    Register a new user with phone + OTP (no password)
 // @route   POST /api/auth/signup/phone
 // @access  Public
+// export const signupWithPhoneController = asyncHandler(async (req, res) => {
+//   const { phone, fullName, otp } = req.body;
+
+//   // Validation
+//   if (!phone || !fullName || !otp) {
+//     return res.status(400).json({
+//       message: "Please provide phone, full name, and OTP",
+//     });
+//   }
+
+//   // Verify the OTP first
+//   const otpResult = await consumeOtp(phone, otp);
+//   if (!otpResult.ok) {
+//     return res.status(otpResult.status).json({ message: otpResult.message });
+//   }
+
+//   const normalizedPhone = otpResult.phone;
+
+//   // Check if user already exists
+//   const existingUser = await prisma.user.findUnique({
+//     where: { phone: normalizedPhone },
+//   });
+
+//   if (existingUser) {
+//     return res.status(409).json({
+//       message: "User already exists with this phone number. Please log in.",
+//     });
+//   }
+
+//   // Get or create customer role
+//   const customerRole = await prisma.role.upsert({
+//     where: { name: "customer" },
+//     update: {},
+//     create: { name: "customer" },
+//   });
+
+//   // Create user (no passwordHash — phone users authenticate with OTP)
+//   const user = await prisma.user.create({
+//     data: {
+//       fullName: fullName.trim(),
+//       phone: normalizedPhone,
+//       provider: "phone",
+//       roleId: customerRole.id,
+//       isVerified: true, // verified via OTP
+//       email: `${normalizedPhone.replace(/\D/g, "")}@phone.baleryon.com`, // placeholder email
+//     },
+//     include: {
+//       role: true,
+//     },
+//   });
+
+//   // Generate token
+//   const token = generateToken(user.id);
+
+//   res.status(201).json({
+//     message: "User registered successfully",
+//     user: sanitizeUser(user),
+//     token,
+//   });
+// });
+
 export const signupWithPhoneController = asyncHandler(async (req, res) => {
   const { phone, fullName, otp } = req.body;
 
-  // Validation
-  if (!phone || !fullName || !otp) {
+  // 1. Validate required authentication fields
+  if (!phone || !otp) {
     return res.status(400).json({
-      message: "Please provide phone, full name, and OTP",
+      success: false,
+      message: "Please provide phone and OTP",
     });
   }
 
-  // Verify the OTP first
+  // 2. Verify OTP first
   const otpResult = await consumeOtp(phone, otp);
+
   if (!otpResult.ok) {
-    return res.status(otpResult.status).json({ message: otpResult.message });
+    return res.status(otpResult.status).json({
+      success: false,
+      message: otpResult.message,
+    });
   }
 
   const normalizedPhone = otpResult.phone;
 
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { phone: normalizedPhone },
-  });
+  // 3. Normalize phone to match the login controller's DB format
+  const digits = normalizedPhone.replace(/\D/g, "");
 
-  if (existingUser) {
-    return res.status(409).json({
-      message: "User already exists with this phone number. Please log in.",
-    });
-  }
+  const phoneForLookup =
+    digits.length === 12 && digits.startsWith("91")
+      ? digits.slice(2)
+      : digits;
 
-  // Get or create customer role
-  const customerRole = await prisma.role.upsert({
-    where: { name: "customer" },
-    update: {},
-    create: { name: "customer" },
-  });
+  // Support existing records stored with or without +91
+  const phoneVariants = [
+    phoneForLookup,
+    normalizedPhone,
+    `+91${phoneForLookup}`,
+  ];
 
-  // Create user (no passwordHash — phone users authenticate with OTP)
-  const user = await prisma.user.create({
-    data: {
-      fullName: fullName.trim(),
-      phone: normalizedPhone,
-      provider: "phone",
-      roleId: customerRole.id,
-      isVerified: true, // verified via OTP
-      email: `${normalizedPhone.replace(/\D/g, "")}@phone.baleryon.com`, // placeholder email
+  // 4. Check whether the user already exists
+  let user = await prisma.user.findFirst({
+    where: {
+      phone: {
+        in: [...new Set(phoneVariants)],
+      },
     },
     include: {
       role: true,
     },
   });
 
-  // Generate token
+  // 5. Existing user: log in instead of creating another account
+  if (user) {
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account has been blocked. Please contact support.",
+      });
+    }
+
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLogin: new Date(),
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    const token = generateToken(user.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      action: "LOGIN",
+      user: sanitizeUser(user),
+      token,
+    });
+  }
+
+  // 6. New user: full name is required for registration
+  if (!fullName?.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Full name is required to create an account.",
+    });
+  }
+
+  // 7. Get or create customer role
+  const customerRole = await prisma.role.upsert({
+    where: { name: "customer" },
+    update: {},
+    create: { name: "customer" },
+  });
+
+  // 8. Create the new account
+  user = await prisma.user.create({
+    data: {
+      fullName: fullName.trim(),
+      phone: phoneForLookup,
+      provider: "phone",
+      roleId: customerRole.id,
+      isVerified: true,
+      email: `${phoneForLookup}@phone.baleryon.com`,
+    },
+    include: {
+      role: true,
+    },
+  });
+
+  // 9. Log in the newly registered user
   const token = generateToken(user.id);
 
-  res.status(201).json({
-    message: "User registered successfully",
+  return res.status(201).json({
+    success: true,
+    message: "Account created successfully",
+    action: "REGISTER",
     user: sanitizeUser(user),
     token,
   });
 });
+
 
 // @desc    Login user with email
 // @route   POST /api/auth/login
@@ -540,59 +664,130 @@ export const loginController = asyncHandler(async (req, res) => {
 // @desc    Login user with phone + OTP (no password)
 // @route   POST /api/auth/login/phone
 // @access  Public
+// export const loginWithPhoneController = asyncHandler(async (req, res) => {
+//   const { phone, otp } = req.body;
+
+//   // Validation
+//   if (!phone || !otp) {
+//     return res.status(400).json({
+//       message: "Please provide phone and OTP",
+//     });
+//   }
+
+//   console.log(phone, otp, "phonephonephonephonephone");
+//   // Verify the OTP first
+//   const otpResult = await consumeOtp(phone, otp);
+//   console.log(otpResult, "otpResultotpResultotpResultotpResult");
+//   if (!otpResult.ok) {
+//     return res.status(otpResult.status).json({ message: otpResult.message });
+//   }
+
+//   const normalizedPhone = otpResult.phone;
+
+//   console.log(normalizedPhone, "normalizedPhonenormalizedPhonenormalizedPhone");
+
+//   // // Find user
+//   // const user = await prisma.user.findUnique({
+//   //   where: { phone: normalizedPhone },
+//   //   include: {
+//   //     role: true,
+//   //   },
+//   // });
+
+//   // Convert +917204474711 to 7204474711 for existing DB records
+//   const phoneForLookup = normalizedPhone.startsWith("+91")
+//     ? normalizedPhone.slice(3)
+//     : normalizedPhone;
+
+//     console.log(phoneForLookup, "phoneForLookupphoneForLookupphoneForLookup");
+    
+//   const user = await prisma.user.findUnique({
+//     where: { phone: phoneForLookup },
+//     include: {
+//       role: true,
+//     },
+//   });
+
+//   console.log(user, "useruseruseruseruser");
+
+//   if (!user) {
+//     return res.status(404).json({
+//       message: "Invalid OTP or phone number. Please try again.",
+//     });
+//   }
+
+//   // Check if user is blocked
+//   if (user.isBlocked) {
+//     return res.status(403).json({
+//       message: "Your account has been blocked. Please contact support.",
+//     });
+//   }
+
+//   // Update last login
+//   await prisma.user.update({
+//     where: { id: user.id },
+//     data: { lastLogin: new Date() },
+//   });
+
+//   // Generate token
+//   const token = generateToken(user.id);
+
+//   res.status(200).json({
+//     message: "Login successful",
+//     user: sanitizeUser(user),
+//     token,
+//   });
+// });
+
 export const loginWithPhoneController = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
 
-  // Validation
+  // Validate request
   if (!phone || !otp) {
     return res.status(400).json({
+      success: false,
       message: "Please provide phone and OTP",
     });
   }
 
-  console.log(phone, otp, "phonephonephonephonephone");
-  // Verify the OTP first
+  // Verify and consume OTP
   const otpResult = await consumeOtp(phone, otp);
-  console.log(otpResult, "otpResultotpResultotpResultotpResult");
+
   if (!otpResult.ok) {
-    return res.status(otpResult.status).json({ message: otpResult.message });
+    return res.status(otpResult.status).json({
+      success: false,
+      message: otpResult.message,
+    });
   }
 
   const normalizedPhone = otpResult.phone;
 
-  console.log(normalizedPhone, "normalizedPhonenormalizedPhonenormalizedPhone");
-
-  // // Find user
-  // const user = await prisma.user.findUnique({
-  //   where: { phone: normalizedPhone },
-  //   include: {
-  //     role: true,
-  //   },
-  // });
-
-  // Convert +917204474711 to 7204474711 for existing DB records
+  // Match existing Indian phone records stored without +91
   const phoneForLookup = normalizedPhone.startsWith("+91")
     ? normalizedPhone.slice(3)
     : normalizedPhone;
 
+  // Find existing user
   const user = await prisma.user.findUnique({
     where: { phone: phoneForLookup },
-    include: {
-      role: true,
-    },
+    include: { role: true },
   });
 
-  console.log(user, "useruseruseruseruser");
-
+  // User is not registered: direct frontend to signup
   if (!user) {
     return res.status(404).json({
-      message: "Invalid OTP or phone number. Please try again.",
+      success: false,
+      code: "USER_NOT_FOUND",
+      message: "No account found with this phone number. Please create an account.",
+      redirectTo: "/signup",
+      phone: phoneForLookup,
     });
   }
 
-  // Check if user is blocked
+  // Check blocked account
   if (user.isBlocked) {
     return res.status(403).json({
+      success: false,
       message: "Your account has been blocked. Please contact support.",
     });
   }
@@ -603,10 +798,11 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
     data: { lastLogin: new Date() },
   });
 
-  // Generate token
+  // Generate authentication token
   const token = generateToken(user.id);
 
-  res.status(200).json({
+  return res.status(200).json({
+    success: true,
     message: "Login successful",
     user: sanitizeUser(user),
     token,

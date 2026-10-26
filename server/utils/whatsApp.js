@@ -174,6 +174,9 @@ export const verifyOTP = async (otpId, code) => {
       }
     );
 
+    console.log(response.data, "response.dataresponse.dataresponse.data");
+    
+
     const result = response.data;
 
     if (!result?.success) {
