@@ -9,7 +9,7 @@ import Loader from "@/components/ui/Loader";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup, loginWithGoogle, requestPhoneOtp, signupWithPhone } =
+  const { signup, loginWithGoogle, requestSignupPhoneOtp, signupWithPhone } =
     useAuthStore();
 
   const [authMethod, setAuthMethod] = useState<"phone">("phone");
@@ -85,66 +85,86 @@ export default function SignupPage() {
   //   }
   // };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+ 
+const handleSendOtp = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!formData.fullName.trim()) {
-      setError("Full name is required");
-      return;
+  if (!formData.fullName.trim()) {
+    setError("Full name is required");
+    return;
+  }
+
+  if (!formData.phone.trim()) {
+    setError("Phone number is required");
+    return;
+  }
+
+  setIsLoading(true);
+  setError("");
+  setOtpInfo("");
+
+  try {
+    const devOtp = await requestSignupPhoneOtp(formData.phone);
+
+    setOtpInfo(
+      devOtp
+        ? `OTP sent to ${formData.phone}. Dev OTP: ${devOtp}`
+        : `OTP sent to ${formData.phone} via WhatsApp.`,
+    );
+
+    setPhoneStep("otp");
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Could not send OTP. Please try again.";
+
+    if (
+      err instanceof Error &&
+      "code" in err &&
+      err.code === "USER_ALREADY_EXISTS"
+    ) {
+      setError("This phone number is already registered. Please sign in.");
+    } else {
+      setError(message);
     }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    if (!formData.phone.trim()) {
-      setError("Phone number is required");
-      return;
-    }
 
-    setIsLoading(true);
-    setError("");
 
-    try {
-      const devOtp = await requestPhoneOtp(formData.phone);
-      setOtpInfo(
-        devOtp
-          ? `We sent a 6-digit code to ${formData.phone}. Dev OTP (no SMS configured): ${devOtp}`
-          : `We sent a 6-digit code to ${formData.phone}.`,
-      );
-      setPhoneStep("otp");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not send OTP. Please try again.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const handleVerifyOtp = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  if (!formData.otp.trim()) {
+    setError("Please enter the OTP");
+    return;
+  }
 
-    if (!formData.otp.trim()) {
-      setError("Please enter the OTP");
-      return;
-    }
+  setIsLoading(true);
+  setError("");
 
-    setIsLoading(true);
-    setError("");
+  try {
+    await signupWithPhone(
+      formData.phone,
+      formData.otp,
+      formData.fullName,
+    );
 
-    try {
-      await signupWithPhone(formData.phone, formData.otp, formData.fullName);
+    router.push("/");
+  } catch (err: unknown) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Account creation failed. Please try again.",
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-      router.push("/");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Authentication failed. Please try again.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleGoogleSignup = async () => {
     setIsLoading(true);
