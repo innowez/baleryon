@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ShoppingBag,
-  Heart,
-  MapPin,
-  ArrowRight,
-  LogOut,
-} from "lucide-react";
+import { ShoppingBag, Heart, MapPin, ArrowRight, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchProfile } from "@/lib/profileApi";
@@ -18,7 +12,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 import Loader from "@/components/ui/Loader";
 import type { UserProfile } from "@/types/profile";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 function getInitials(name: string) {
   return name
@@ -29,17 +23,29 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
+const Wrapper = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <AnnouncementBar />
+    <Header variant="solid" />
+    <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-12 min-h-screen">
+      <div className="container-max max-w-4xl">{children}</div>
+    </main>
+    <Footer />
+    <BottomNav />
+  </>
+);
+
 export default function ProfilePage() {
-  const { user,logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-const handleLogout = () => {
-  logout();
-  toast.success("Logged out successfully");
-  router.replace("/login");
-};
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully");
+    router.replace("/login");
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -47,18 +53,6 @@ const handleLogout = () => {
       .then(setProfile)
       .finally(() => setLoading(false));
   }, [user?.id]);
-
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <>
-      <AnnouncementBar />
-      <Header variant="solid" />
-      <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-12 min-h-screen">
-        <div className="container-max max-w-4xl">{children}</div>
-      </main>
-      <Footer />
-      <BottomNav />
-    </>
-  );
 
   if (loading)
     return (
