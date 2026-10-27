@@ -13,11 +13,6 @@ interface AddressFormProps {
 }
 
 export function AddressForm({ onClose, address }: AddressFormProps) {
-  console.log(
-    address,
-    "addressaddressaddressaddressaddressaddressaddressaddress",
-  );
-
   const { user } = useAuthStore();
   const { addAddress, updateAddress } = useAddressStore();
 
@@ -164,22 +159,27 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
 
   //   onClose();
   // };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
+    console.log(
+      address,
+      "addressaddressaddressaddressaddressaddressaddressaddress",
+    );
+
     if (!user) {
       toast.error("You're not signed in.", {
         description: "Please log in before adding or updating an address.",
         duration: 3000,
       });
-  
+
       onClose();
       return;
     }
-  
+
     if (!validateForm()) return;
-  
+
     const payload = {
       userId: user.id,
       fullName: formData.fullName,
@@ -191,13 +191,15 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
       country: formData.country,
       isDefault: formData.isDefault,
     };
-  
+    // alert("ASJFAL");
+    console.log(address,"addressaddressaddressaddress");
+    
     if (address) {
       await updateAddress(address.id, payload);
     } else {
       await addAddress(payload);
     }
-  
+
     onClose();
   };
 

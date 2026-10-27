@@ -84,15 +84,15 @@ export function Footer() {
               <p className="text-sm text-white/60 leading-relaxed">Premium streetwear for the modern generation.</p>
             </div>
             <div className="space-y-3 text-sm">
-              <a href="mailto:hello@baleryon.com" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors">
-                <Mail size={16} /> hello@baleryon.com
+              <a href="mailto:contact@baleryon.in" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors">
+                <Mail size={16} /> contact@baleryon.in
               </a>
-              <a href="tel:+91-9000000000" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors">
+              {/* <a href="tel:+91-9000000000" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors">
                 <Phone size={16} /> +91 90000 00000
-              </a>
+              </a> */}
               <div className="flex items-start gap-3 text-white/60">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0" />
-                <span>Mumbai, India</span>
+                <span>Bangalore, India</span>
               </div>
             </div>
             <div className="flex gap-2.5">
@@ -142,12 +142,12 @@ export function Footer() {
             <AccordionSection key={category} title={category} links={links} />
           ))}
           <div className="mt-6 space-y-2.5">
-            <a href="mailto:hello@baleryon.com" className="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors">
-              <Mail size={15} /> hello@baleryon.com
+            <a href="mailto:contact@baleryon.in" className="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors">
+              <Mail size={15} /> contact@baleryon.in
             </a>
-            <a href="tel:+91-9000000000" className="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors">
+            {/* <a href="tel:+91-9000000000" className="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors">
               <Phone size={15} /> +91 90000 00000
-            </a>
+            </a> */}
           </div>
         </div>
 

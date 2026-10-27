@@ -43,12 +43,19 @@ export interface Banner {
 
 export interface InstagramPost {
   id: string;
-  media_url: string;
+  image: string;
+  mediaType: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
   permalink: string;
-  caption?: string;
+  caption: string;
+  timestamp: string;
+  likes: number | null;
+  comments: number | null;
 }
+
 
 export interface LandingStore {
   instagramPosts: InstagramPost[];
   getInstagramPosts: () => Promise<void>;
 }
+
+

@@ -41,7 +41,7 @@ export function Header({ variant = "transparent" }: HeaderProps) {
   const bgClass = dark
     ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E5E5]"
     : "bg-transparent";
-  const bgClassLogo = dark ? "/baleryon_logo.png" : "/baleryonWhite.png";
+  const bgClassLogo = dark ? "/baleryonWithTextBlack.png" : "/baleryonWhite.png";
 
   return (
     <header
@@ -54,8 +54,8 @@ export function Header({ variant = "transparent" }: HeaderProps) {
             <Image
               src={bgClassLogo}
               alt="BALERYON"
-              width={dark ? 78 : 100}
-              height={dark ? 78 : 100}
+              width={dark ? 88 : 100}
+              height={dark ? 88 : 100}
               className="object-contain"
             />
           </Link>

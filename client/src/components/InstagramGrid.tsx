@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { Heart, MessageCircle, ExternalLink } from "lucide-react";
 import { motion } from "motion/react";
+import { useEffect } from "react";
+import { useLandingStore } from "@/store/landingStore";
 // import { useEffect } from "react";
 // import { useLandingStore } from "@/store/landingStore";
 
@@ -52,6 +54,23 @@ export function InstagramGrid() {
   //   getInstagramPosts();
   // }, []);
 
+  const { instagramPosts, getInstagramPosts } = useLandingStore();
+
+  useEffect(() => {
+    void getInstagramPosts();
+  }, [getInstagramPosts]);
+
+  const posts = instagramPosts.slice(0, 6);
+
+  const formatCount = (value: number | null) => {
+    if (value === null) return null;
+
+    return new Intl.NumberFormat("en", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  };
+
   return (
     <section className="py-14 sm:py-20 bg-[#F8F8F8]">
       <div className="container-max">
@@ -77,7 +96,7 @@ export function InstagramGrid() {
 
         {/* Mobile: horizontal scroll; Desktop: 3-col grid */}
         <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:gap-3">
-          {posts.map((post, idx) => (
+          {/* {posts.map((post, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -91,12 +110,12 @@ export function InstagramGrid() {
                 alt="Instagram post"
                 fill
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
-              />
+              /> */}
 
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
-                {/* Instagram icon */}
-                <svg
+          {/* Hover overlay */}
+          {/* <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3"> */}
+          {/* Instagram icon */}
+          {/* <svg
                   width="22"
                   height="22"
                   viewBox="0 0 24 24"
@@ -128,10 +147,10 @@ export function InstagramGrid() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
-              {/* Mobile: always show stats as subtle bottom bar */}
-              <div className="sm:hidden absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2 flex items-center gap-3 text-white">
+          {/* Mobile: always show stats as subtle bottom bar */}
+          {/* <div className="sm:hidden absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2 flex items-center gap-3 text-white">
                 <div className="flex items-center gap-1">
                   <Heart size={13} fill="white" />
                   <span className="text-[11px] font-medium">{post.likes}</span>
@@ -144,6 +163,94 @@ export function InstagramGrid() {
                 </div>
               </div>
             </motion.div>
+          ))} */}
+
+          {posts.map((post, idx) => (
+            <motion.a
+              key={post.id}
+              href={post.permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={post.caption || "View Instagram post"}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: idx * 0.05 }}
+              className="relative flex-shrink-0 w-[72vw] sm:w-auto aspect-square rounded-2xl overflow-hidden cursor-pointer group snap-start"
+            >
+              <Image
+                src={post.image}
+                alt={post.caption || "Instagram post"}
+                fill
+                sizes="(max-width: 640px) 72vw, (max-width: 1024px) 32vw, 380px"
+                className="object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  className="mb-1"
+                  aria-hidden="true"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <circle
+                    cx="17.5"
+                    cy="6.5"
+                    r="1.5"
+                    fill="white"
+                    stroke="none"
+                  />
+                </svg>
+
+                <div className="flex items-center gap-5 text-white">
+                  {post.likes !== null && (
+                    <div className="flex items-center gap-1.5">
+                      <Heart size={18} fill="white" />
+                      <span className="text-sm font-semibold">
+                        {formatCount(post.likes)}
+                      </span>
+                    </div>
+                  )}
+
+                  {post.comments !== null && (
+                    <div className="flex items-center gap-1.5">
+                      <MessageCircle size={18} />
+                      <span className="text-sm font-semibold">
+                        {formatCount(post.comments)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile stats */}
+              <div className="sm:hidden absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2 flex items-center gap-3 text-white">
+                {post.likes !== null && (
+                  <div className="flex items-center gap-1">
+                    <Heart size={13} fill="white" />
+                    <span className="text-[11px] font-medium">
+                      {formatCount(post.likes)}
+                    </span>
+                  </div>
+                )}
+
+                {post.comments !== null && (
+                  <div className="flex items-center gap-1">
+                    <MessageCircle size={13} />
+                    <span className="text-[11px] font-medium">
+                      {formatCount(post.comments)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.a>
           ))}
         </div>
 

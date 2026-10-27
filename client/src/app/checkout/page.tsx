@@ -547,7 +547,10 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-xs text-[#6B7280] flex items-center gap-1">
                           {codEligibility?.loading ? (
-                            <Loader size={14} label="Checking availability..." />
+                            <Loader
+                              size={14}
+                              label="Checking availability..."
+                            />
                           ) : codEligibility?.codAvailable ? (
                             <>
                               <Check size={12} className="text-green-600" />
@@ -691,9 +694,14 @@ export default function CheckoutPage() {
         <AddressForm
           key={editingAddress?.id ?? "new-address"}
           address={editingAddress}
-          onClose={() => {
+          onClose={async () => {
             setShowAddressForm(false);
             setEditingAddress(null);
+
+            // Refresh addresses after adding or editing
+            if (user?.id) {
+              await fetchAddresses(user.id);
+            }
           }}
         />
       )}

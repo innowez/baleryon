@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, ShoppingBag, Heart, MapPin, Settings, ChevronRight, ArrowRight } from "lucide-react";
+import {
+  ShoppingBag,
+  Heart,
+  MapPin,
+  ArrowRight,
+  LogOut,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchProfile } from "@/lib/profileApi";
 import { Header } from "@/components/Header";
@@ -22,9 +29,15 @@ function getInitials(name: string) {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user,logout } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+const handleLogout = () => {
+  logout();
+  toast.success("Logged out successfully");
+  router.replace("/login");
+};
 
   useEffect(() => {
     if (!user?.id) return;
@@ -45,28 +58,29 @@ export default function ProfilePage() {
     </>
   );
 
-  if (loading) return (
-    <Wrapper>
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader size={48} />
-      </div>
-    </Wrapper>
-  );
+  if (loading)
+    return (
+      <Wrapper>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader size={48} />
+        </div>
+      </Wrapper>
+    );
 
-  if (!profile) return (
-    <Wrapper>
-      <div className="min-h-[60vh] flex items-center justify-center text-sm text-[#6B7280] tracking-widest uppercase">
-        Profile not found
-      </div>
-    </Wrapper>
-  );
+  if (!profile)
+    return (
+      <Wrapper>
+        <div className="min-h-[60vh] flex items-center justify-center text-sm text-[#6B7280] tracking-widest uppercase">
+          Profile not found
+        </div>
+      </Wrapper>
+    );
 
   const initials = getInitials(profile.user.fullName);
   const defaultAddress = profile.user.addresses?.[0];
 
   return (
     <Wrapper>
-
       {/* ── Identity strip ── */}
       <div className="relative border-b border-[#E5E5E5] pb-10 mb-10 overflow-hidden">
         {/* Ghost monogram */}
@@ -87,15 +101,37 @@ export default function ProfilePage() {
                 {profile.user.fullName}
               </h1>
               <div className="flex flex-col gap-0.5 mt-2">
-                <span className="text-xs text-[#6B7280]">{profile.user.email}</span>
-                <span className="text-xs text-[#6B7280]">{profile.user.phone || "No phone number"}</span>
+                <span className="text-xs text-[#6B7280]">
+                  {profile.user.email}
+                </span>
+                <span className="text-xs text-[#6B7280]">
+                  {profile.user.phone || "No phone number"}
+                </span>
               </div>
             </div>
           </div>
 
-          <button className="self-start sm:self-auto text-[11px] font-medium tracking-[0.12em] uppercase border border-[#0F0F0F] px-5 py-2.5 hover:bg-[#0F0F0F] hover:text-white transition-colors rounded-none">
+          {/* <button className="self-start sm:self-auto text-[11px] font-medium tracking-[0.12em] uppercase border border-[#0F0F0F] px-5 py-2.5 hover:bg-[#0F0F0F] hover:text-white transition-colors rounded-none">
             Edit Profile
-          </button>
+          </button> */}
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              className="w-full sm:w-auto self-start sm:self-auto text-[11px] font-medium tracking-[0.12em] uppercase border border-[#0F0F0F] px-5 py-3 hover:bg-[#0F0F0F] hover:text-white transition-colors"
+            >
+              Edit Profile
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase border border-red-500 text-red-600 px-5 py-3 hover:bg-red-600 hover:text-white transition-colors"
+            >
+              <LogOut size={15} />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -104,11 +140,18 @@ export default function ProfilePage() {
         {[
           { value: profile.stats.totalOrders, label: "Total Orders" },
           { value: profile.stats.wishlistItems, label: "Wishlist" },
-          { value: `₹${Math.round(profile.stats.totalSpent).toLocaleString()}`, label: "Total Spent" },
+          {
+            value: `₹${Math.round(profile.stats.totalSpent).toLocaleString()}`,
+            label: "Total Spent",
+          },
         ].map(({ value, label }) => (
           <div key={label} className="px-5 py-6">
-            <div className="text-3xl sm:text-4xl font-medium tracking-tight leading-none">{value}</div>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[#6B7280] mt-2">{label}</div>
+            <div className="text-3xl sm:text-4xl font-medium tracking-tight leading-none">
+              {value}
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[#6B7280] mt-2">
+              {label}
+            </div>
           </div>
         ))}
       </div>
@@ -118,9 +161,24 @@ export default function ProfilePage() {
         <SectionHeader title="Account" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-[#E5E5E5]">
           {[
-            { href: "/orders", icon: ShoppingBag, label: "Orders", sub: "Track & return" },
-            { href: "/wishlist", icon: Heart, label: "Wishlist", sub: "Saved items" },
-            { href: "/addresses", icon: MapPin, label: "Addresses", sub: "Manage delivery" },
+            {
+              href: "/orders",
+              icon: ShoppingBag,
+              label: "Orders",
+              sub: "Track & return",
+            },
+            {
+              href: "/wishlist",
+              icon: Heart,
+              label: "Wishlist",
+              sub: "Saved items",
+            },
+            {
+              href: "/addresses",
+              icon: MapPin,
+              label: "Addresses",
+              sub: "Manage delivery",
+            },
             // { href: "/settings", icon: Settings, label: "Settings", sub: "Preferences" },
           ].map(({ href, icon: Icon, label, sub }) => (
             <Link
@@ -140,10 +198,22 @@ export default function ProfilePage() {
 
       {/* ── Recent Orders ── */}
       <div className="mb-10">
-        <SectionHeader title="Recent Orders" action={<Link href="/orders" className="text-[11px] text-[#6B7280] hover:text-black flex items-center gap-1 transition-colors">View all <ArrowRight size={11} /></Link>} />
+        <SectionHeader
+          title="Recent Orders"
+          action={
+            <Link
+              href="/orders"
+              className="text-[11px] text-[#6B7280] hover:text-black flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight size={11} />
+            </Link>
+          }
+        />
 
         {profile.user.orders.length === 0 ? (
-          <p className="text-[11px] uppercase tracking-widest text-[#6B7280] py-8 text-center">No orders yet</p>
+          <p className="text-[11px] uppercase tracking-widest text-[#6B7280] py-8 text-center">
+            No orders yet
+          </p>
         ) : (
           <div className="flex flex-col gap-px bg-[#E5E5E5]">
             {profile.user.orders.map((order) => (
@@ -153,13 +223,21 @@ export default function ProfilePage() {
                 className="bg-white px-5 py-4 flex items-center justify-between hover:bg-[#F8F8F8] transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium">Order #{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-sm font-medium">
+                    Order #{order.id.slice(0, 8).toUpperCase()}
+                  </p>
                   <p className="text-[11px] text-[#6B7280] mt-0.5">
-                    {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium">₹{order.totalAmount.toLocaleString()}</p>
+                  <p className="text-sm font-medium">
+                    ₹{order.totalAmount.toLocaleString()}
+                  </p>
                   <span className="inline-block text-[10px] uppercase tracking-[0.1em] border border-[#E5E5E5] px-2 py-0.5 mt-1 text-[#6B7280]">
                     {order.orderStatus}
                   </span>
@@ -173,23 +251,41 @@ export default function ProfilePage() {
       {/* ── Default Address ── */}
       {defaultAddress && (
         <div className="mb-10">
-          <SectionHeader title="Default Address" action={<button className="text-[11px] text-[#6B7280] hover:text-black transition-colors">Edit</button>} />
+          <SectionHeader
+            title="Default Address"
+            action={
+              <button className="text-[11px] text-[#6B7280] hover:text-black transition-colors">
+                Edit
+              </button>
+            }
+          />
           <div className="flex flex-col gap-1 py-4">
             <p className="text-sm">{defaultAddress.addressLine1}</p>
-            <p className="text-sm text-[#6B7280]">{defaultAddress.city}, {defaultAddress.state}</p>
-            <p className="text-sm text-[#6B7280]">{defaultAddress.postalCode}</p>
+            <p className="text-sm text-[#6B7280]">
+              {defaultAddress.city}, {defaultAddress.state}
+            </p>
+            <p className="text-sm text-[#6B7280]">
+              {defaultAddress.postalCode}
+            </p>
           </div>
         </div>
       )}
-
     </Wrapper>
   );
 }
 
-function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
+function SectionHeader({
+  title,
+  action,
+}: {
+  title: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between mb-3 pb-3 border-b border-[#E5E5E5]">
-      <span className="text-[10px] uppercase tracking-[0.16em] text-[#6B7280]">{title}</span>
+      <span className="text-[10px] uppercase tracking-[0.16em] text-[#6B7280]">
+        {title}
+      </span>
       {action}
     </div>
   );

@@ -22,6 +22,11 @@ export async function fetchActiveBanner() {
   }>("/api/banner/active");
 }
 
+// export async function fetchInstagramPosts() {
+//   return apiFetch<{
+//     posts: InstagramPost[];
+//   }>("/api/instagram/posts");
+// }
 export async function fetchInstagramPosts() {
   return apiFetch<{
     posts: InstagramPost[];
@@ -38,3 +43,7 @@ export const joinCommunity = async (email: string) => {
     }),
   });
 };
+
+
+
+

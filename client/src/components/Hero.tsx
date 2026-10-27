@@ -29,9 +29,7 @@ export function Hero() {
   }, []);
 
   if (loading && !banner) {
-    return (
-      <section className="h-[100svh] w-full bg-black animate-pulse" />
-    );
+    return <section className="h-[100svh] w-full bg-black animate-pulse" />;
   }
 
   return (
@@ -87,9 +85,7 @@ export function Hero() {
         >
           {banner?.mainContent
             ?.split("\n")
-            .map((line, index) => (
-              <div key={index}>{line}</div>
-            )) || (
+            .map((line, index) => <div key={index}>{line}</div>) || (
             <>
               BREAK
               <br />

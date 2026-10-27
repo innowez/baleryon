@@ -2,6 +2,7 @@ import {
   fetchActiveBanner,
   fetchActiveLimitedSeason,
   fetchCategories,
+  fetchInstagramPosts,
   joinCommunity,
   // fetchInstagramPosts,
 } from "@/lib/landingApis";
@@ -28,7 +29,7 @@ interface LandingStore {
   getBanner: () => Promise<void>;
   subscribe: (email: string) => Promise<void>;
 
-  // getInstagramPosts: () => Promise<void>;
+  getInstagramPosts: () => Promise<void>;
 }
 
 export const useLandingStore = create<LandingStore>((set) => ({
@@ -97,13 +98,24 @@ export const useLandingStore = create<LandingStore>((set) => ({
     }
   },
 
-  // getInstagramPosts: async () => {
-  //   const data = await fetchInstagramPosts();
+  
+getInstagramPosts: async () => {
+  try {
+    const data = await fetchInstagramPosts();
 
-  //   set({
-  //     instagramPosts: data.posts,
-  //   });
-  // },
+    set({
+      instagramPosts: data.posts,
+    });
+  } catch (error) {
+    set({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load Instagram posts",
+    });
+  }
+},
+
 
   subscribe: async (email: string) => {
     try {

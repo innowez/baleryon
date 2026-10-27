@@ -21,6 +21,8 @@ import categoryRoute from "./routes//landing/categoryRoute.js";
 import limitedSeasonRoute from "./routes/landing/limitedSeasonRoute.js";
 import BannerRouter from "./routes/landing/bannerRouter.js"
 import communityRoutes from "./routes/landing/communityRoutes.js"
+import instagramRouter from "./routes/landing/instagramRouter.js";
+
 
 
 import deliveryRoutes from "./routes/deliveryRouter.js"
@@ -70,6 +72,7 @@ app.use("/api/category", categoryRoute);
 app.use("/api/limited-season", limitedSeasonRoute);
 app.use("/api/banner", BannerRouter);
 app.use("/api/community", communityRoutes);
+app.use("/api/instagram", instagramRouter);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/coupons", couponRoutes);
 

@@ -1,17 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Search, Heart, ShoppingBag, User, Package, LucideIcon } from "lucide-react";
+import {
+  Home,
+  Heart,
+  ShoppingBag,
+  User,
+  Package,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CartDialog } from "./CartDialog";
-import { usePathname } from "next/navigation";  
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
+
   const { totalItems: cartCount } = useCartStore();
   const { getWishlistCount } = useWishlistStore();
   const { isLoggedIn } = useAuthStore();
@@ -26,19 +37,48 @@ export function BottomNav() {
     badge?: number;
     onClick?: () => void;
   }> = [
-    { id: "home", icon: Home, label: "Home", href: "/" },
-    { id: "products", icon: Package, label: "Products", href: "/products" },
-    { id: "wishlist", icon: Heart, label: "Wishlist", href: "/wishlist", badge: wishlistCount },
-    { id: "cart", icon: ShoppingBag, label: "Cart", href: "#", badge: cartCount, onClick: () => setCartDialogOpen(true) },
-    { id: "profile", icon: User, label: "Profile", href: "/profile" },
+    {
+      id: "home",
+      icon: Home,
+      label: "Home",
+      href: "/",
+    },
+    {
+      id: "products",
+      icon: Package,
+      label: "Products",
+      href: "/products",
+    },
+    {
+      id: "wishlist",
+      icon: Heart,
+      label: "Wishlist",
+      href: "/wishlist",
+      badge: wishlistCount,
+    },
+    {
+      id: "cart",
+      icon: ShoppingBag,
+      label: "Cart",
+      href: "#",
+      badge: cartCount,
+      onClick: () => setCartDialogOpen(true),
+    },
+    {
+      id: "profile",
+      icon: User,
+      label: "Profile",
+      href: isLoggedIn ? "/profile" : "/login",
+    },
   ];
 
   const getActiveTab = () => {
     if (pathname === "/") return "home";
-    if (pathname === "/products") return "products";
-    if (pathname === "/wishlist") return "wishlist";
-    if (pathname === "/profile") return "profile";
-    return "home";
+    if (pathname.startsWith("/products")) return "products";
+    if (pathname.startsWith("/wishlist")) return "wishlist";
+    if (pathname.startsWith("/profile")) return "profile";
+
+    return "";
   };
 
   const activeTab = getActiveTab();
@@ -51,7 +91,7 @@ export function BottomNav() {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
 
-            const handleClick = (e: React.MouseEvent) => {
+            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
               if (item.onClick) {
                 e.preventDefault();
                 item.onClick();
@@ -73,8 +113,7 @@ export function BottomNav() {
                     }`}
                   />
 
-                  {/* Badge - Only show if count > 0 */}
-                  {(item.badge !== undefined) && item.badge > 0 && (
+                  {item.badge !== undefined && item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#FF3B30] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                       {item.badge > 9 ? "9+" : item.badge}
                     </span>
@@ -94,7 +133,10 @@ export function BottomNav() {
         </div>
       </nav>
 
-      <CartDialog isOpen={cartDialogOpen} onClose={() => setCartDialogOpen(false)} />
+      <CartDialog
+        isOpen={cartDialogOpen}
+        onClose={() => setCartDialogOpen(false)}
+      />
     </>
   );
 }
