@@ -168,6 +168,17 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
       "addressaddressaddressaddressaddressaddressaddressaddress",
     );
 
+    console.log(
+      user,
+      "useruseruseruseruseruseruseruseruseruseruseruseruseruser",
+    );
+
+
+    console.log(
+      formData,
+      "formDataformDataformDataformDataformDataformDataformData",
+    );
+
     if (!user) {
       toast.error("You're not signed in.", {
         description: "Please log in before adding or updating an address.",
@@ -197,6 +208,8 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
     if (address) {
       await updateAddress(address.id, payload);
     } else {
+      console.log(payload,"payloadpayloadpayloadpayloadpayload");
+
       await addAddress(payload);
     }
 
