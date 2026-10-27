@@ -18,6 +18,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 import Loader from "@/components/ui/Loader";
 import type { UserProfile } from "@/types/profile";
+import { useRouter } from "next/router";
 
 function getInitials(name: string) {
   return name
@@ -32,6 +33,7 @@ export default function ProfilePage() {
   const { user,logout } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
 const handleLogout = () => {
   logout();
