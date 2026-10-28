@@ -40,7 +40,7 @@ export function Newsletter() {
           {/* Social proof badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/80 text-xs font-semibold px-4 py-2 rounded-full mb-6">
             <Users size={13} />
-            Join 50,000+ members getting early access
+            Join 10,000+ members getting early access
           </div>
 
           <h2

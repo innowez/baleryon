@@ -356,7 +356,7 @@ export default function CheckoutPage() {
       <div className="container-max">
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={() => router.back()}
+             onClick={() => router.back()}
             className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
           >
             <ArrowLeft size={24} />
