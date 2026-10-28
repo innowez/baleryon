@@ -12,16 +12,14 @@ import { PromotionalBannerContent } from "./PromotionalBannerContent";
 // import { useLimitedSeasonStore } from "@/stores/limitedSeasonStore";
 
 export function PromotionalBanner() {
-  const {
-    season,
-    loading,
-    error,
-    getSeason,
-  } = useLandingStore();
+  const { season, loading, error, getSeason } = useLandingStore();
 
   useEffect(() => {
     getSeason();
   }, [getSeason]);
+
+  console.log(season, "seasonseasonseasonseasonseason");
+  console.log(error, "errorerrorerrorerrorerrorerror");
 
   if (loading) {
     return (
@@ -56,18 +54,12 @@ export function PromotionalBanner() {
     return null;
   }
 
-  console.log(season,"seasonseasonseasonseasonseasonseasonseasonseason");
-  
+  console.log(season, "seasonseasonseasonseasonseasonseasonseasonseason");
 
   const targetDate = new Date(
     new Date(season.updatedAt).getTime() +
-      season.timeCountingHours * 60 * 60 * 1000
+      season.timeCountingHours * 60 * 60 * 1000,
   );
 
-  return (
-    <PromotionalBannerContent
-      season={season}
-      targetDate={targetDate}
-    />
-  );
+  return <PromotionalBannerContent season={season} targetDate={targetDate} />;
 }

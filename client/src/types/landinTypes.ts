@@ -59,3 +59,17 @@ export interface LandingStore {
 }
 
 
+
+export interface UrbanStory {
+  id: string;
+  category: string;
+  ctaLink: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UrbanStoriesResponse {
+  urbanStories: UrbanStory[];
+}

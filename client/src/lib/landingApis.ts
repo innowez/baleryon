@@ -6,7 +6,9 @@ import type {
   CategoriesResponse,
   InstagramPost,
   LimitedSeasonResponse,
+  UrbanStoriesResponse,
 } from "@/types/landinTypes";
+
 
 export async function fetchCategories() {
   return apiFetch<CategoriesResponse>("/api/category/getCategories");
@@ -45,5 +47,8 @@ export const joinCommunity = async (email: string) => {
 };
 
 
-
-
+export async function fetchUrbanStories() {
+  return apiFetch<UrbanStoriesResponse>(
+    "/api/admin/cms/urban-stories"
+  );
+}

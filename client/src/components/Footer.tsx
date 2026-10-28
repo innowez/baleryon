@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone, MapPin, Share2, X, Globe, ChevronDown, ArrowUp } from "lucide-react";
+import { Mail, MapPin, Share2, X, Globe, ChevronDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
 
 const footerLinks: Record<string, { label: string; href: string }[]> = {

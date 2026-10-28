@@ -303,6 +303,8 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
               name="addressLine1"
               value={formData.addressLine1}
               onChange={handleChange}
+               className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
+               placeholder="Street Address"
             />
             {errors.street && (
               <p className="text-xs text-[#FF3B30] mt-1">{errors.street}</p>

@@ -14,6 +14,9 @@ export function CategoryGrid() {
     getCategories();
   }, [getCategories]);
 
+  console.log(error, "errorerrorerrorerrorerrorerrorerror");
+  console.log(categories, "categoriescategoriescategories");
+
   if (loading) {
     return (
       <section className="py-14 sm:py-20">
@@ -33,7 +36,7 @@ export function CategoryGrid() {
     );
   }
 
-  if (error) {
+  if (error && categories.length === 0) {
     return (
       <section className="py-14 sm:py-20">
         <div className="container-max text-center">
@@ -77,7 +80,7 @@ export function CategoryGrid() {
           </button>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:gap-4 md:gap-5">
+        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 sm:gap-4 md:gap-5">
           {categories.map((category, idx) => (
             <Link
               key={category.id}
@@ -92,7 +95,7 @@ export function CategoryGrid() {
                   duration: 0.45,
                   delay: idx * 0.05,
                 }}
-                className="relative flex-shrink-0 w-[60vw] sm:w-auto aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer group snap-start"
+                className="relative flex-shrink-0 w-[48vw] sm:w-auto aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer group snap-start"
               >
                 <Image
                   src={category.image || "/images/category-placeholder.jpg"}

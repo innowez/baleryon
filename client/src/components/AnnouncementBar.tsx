@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const messages = [
   "🚚  Free Shipping Above ₹999",
-  "✦  Easy 30-Day Returns",
+  // "",
   "⚡  New Collection Live Now",
   "💳  Secure UPI & Card Payments",
   "🎁  Members Get Early Access",
@@ -44,8 +44,13 @@ export function AnnouncementBar() {
   const doubled = [...messages, ...messages];
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-50 bg-[#0F0F0F] text-white py-2.5 overflow-hidden transition-all duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"}`}>
-      <div ref={trackRef} className="flex whitespace-nowrap will-change-transform">
+    <div
+      className={`fixed top-0 left-0 right-0 z-50 bg-[#0F0F0F] text-white py-2.5 overflow-hidden transition-all duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"}`}
+    >
+      <div
+        ref={trackRef}
+        className="flex whitespace-nowrap will-change-transform"
+      >
         {doubled.map((msg, idx) => (
           <span
             key={idx}

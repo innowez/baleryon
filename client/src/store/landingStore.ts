@@ -4,8 +4,11 @@ import {
   fetchCategories,
   fetchInstagramPosts,
   joinCommunity,
+  fetchUrbanStories
   // fetchInstagramPosts,
 } from "@/lib/landingApis";
+import type { UrbanStory } from "@/types/landinTypes";
+
 import {
   Banner,
   Category,
@@ -20,10 +23,13 @@ interface LandingStore {
   banner: Banner | null;
   instagramPosts: InstagramPost[];
 
+  urbanStories: UrbanStory[];
+  
   loading: boolean;
   error: string | null;
   success: boolean;
-
+  
+  getUrbanStories: () => Promise<void>;
   getCategories: () => Promise<void>;
   getSeason: () => Promise<void>;
   getBanner: () => Promise<void>;
@@ -142,4 +148,29 @@ getInstagramPosts: async () => {
       });
     }
   },
+
+  urbanStories: [],
+
+getUrbanStories: async () => {
+  try {
+    set({ loading: true, error: null });
+
+    const data = await fetchUrbanStories();
+
+    set({
+      urbanStories: data.urbanStories.filter(
+        (story) => story.isActive
+      ),
+      loading: false,
+    });
+  } catch (error) {
+    set({
+      loading: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load urban stories",
+    });
+  }
+},
 }));
