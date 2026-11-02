@@ -2,6 +2,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { apiPost, type ApiUser } from "@/lib/api";
 
+import { useCartStore, clearGuestCartStorage } from "@/store/useCartStore";
+
+import {
+  useWishlistStore,
+  clearGuestWishlistStorage,
+} from "@/store/useWishlistStore";
+
 export interface User {
   id: string;
   email: string;
@@ -74,7 +81,23 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        set({ user: null, token: null, isLoggedIn: false });
+        // Clear authentication state and persisted auth data.
+        set({
+          user: null,
+          token: null,
+          isLoggedIn: false,
+        });
+
+        // Remove guest cart and wishlist from localStorage.
+        clearGuestCartStorage();
+        clearGuestWishlistStorage();
+
+        // Switch both stores to empty guest sessions.
+        // This does NOT delete database cart/wishlist records.
+        void useCartStore.getState().setSession(false);
+        void useWishlistStore.getState().setSession("guest");
+
+        console.log("Logged out: local cart and wishlist cleared.");
       },
 
       signup: async (email: string, password: string, name: string) => {
@@ -108,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
           "/api/auth/signup/send-otp",
           { phone },
         );
-      
+
         return data.devOtp;
       },
 

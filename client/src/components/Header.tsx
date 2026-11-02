@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Search,
   ShoppingBag,
   LogIn,
   UserPlus,
@@ -15,6 +14,7 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { SearchBar } from "./SearchButton";
+import { useWishlistStore } from "@/store/useWishlistStore";
 
 interface HeaderProps {
   variant?: "transparent" | "solid"; // "transparent" = hero page, "solid" = all others
@@ -33,6 +33,7 @@ export function Header({ variant = "transparent" }: HeaderProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [variant]);
 
+  const wishlistCount = useWishlistStore((state) => state.items.length);
   // On solid pages, always behave as if scrolled
   const dark = variant === "solid" || isScrolled;
 
@@ -41,7 +42,9 @@ export function Header({ variant = "transparent" }: HeaderProps) {
   const bgClass = dark
     ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E5E5]"
     : "bg-transparent";
-  const bgClassLogo = dark ? "/baleryonWithTextBlack.png" : "/baleryonWhite.png";
+  const bgClassLogo = dark
+    ? "/baleryonWithTextBlack.png"
+    : "/baleryonWhite.png";
 
   return (
     <header
@@ -99,7 +102,7 @@ export function Header({ variant = "transparent" }: HeaderProps) {
             <SearchBar dark={dark} />
             <div className="hidden sm:flex items-center gap-1 sm:gap-2">
               {/* Wishlist */}
-              <Link
+              {/* <Link
                 href="/wishlist"
                 aria-label="Wishlist"
                 className={`p-2.5 rounded-xl transition-colors ${
@@ -109,6 +112,26 @@ export function Header({ variant = "transparent" }: HeaderProps) {
                 }`}
               >
                 <Heart size={20} strokeWidth={1.8} />
+              </Link> */}
+
+              {/* Wishlist with item count */}
+              <Link
+                href="/wishlist"
+                aria-label={`Wishlist (${wishlistCount} items)`}
+                className={`relative p-2.5 rounded-xl transition-colors ${
+                  dark
+                    ? "hover:bg-[#F5F5F5] text-[#0F0F0F]"
+                    : "hover:bg-white/20 text-white"
+                }`}
+              >
+                <Heart size={20} strokeWidth={1.8} />
+
+                {/* Wishlist count badge */}
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
               </Link>
 
               {/* Cart */}

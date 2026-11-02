@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
+
+import CartInitializer from "@/components/CartInitializer";
+import WishlistInitializer from "@/components/WishlistInitializer";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -45,8 +49,10 @@ export default function RootLayout({
       className={`${inter.variable} ${plusJakarta.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-white text-[#0F0F0F]">
+        <CartInitializer />
+        <WishlistInitializer />
         {children}
-         <Toaster richColors position="top-center" />
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

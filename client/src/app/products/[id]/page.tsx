@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { Heart } from "lucide-react";
 import { fetchShopProductById } from "@/lib/productsApi";
+import { cartApi } from "@/lib/cartApi";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
@@ -43,6 +44,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [sizeError, setSizeError] = useState(false);
+  const [colorError, setColorError] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,7 +67,15 @@ export default function ProductDetailPage({ params }: PageProps) {
         const data = await fetchShopProductById(id);
         if (cancelled) return;
         setProduct(data);
-        setSelectedColor(data.colors[0] || "");
+        setSelectedColor("");
+        setSelectedSize(
+          data.sizes.length === 1 && data.sizes[0].toLowerCase() === "one size"
+            ? data.sizes[0]
+            : "",
+        );
+        setColorError(false);
+        setSizeError(false);
+        setQuantity(1);
       } catch {
         if (!cancelled) setNotFoundState(true);
       } finally {
@@ -84,13 +95,25 @@ export default function ProductDetailPage({ params }: PageProps) {
   };
 
   const addItem = useCartStore((s) => s.addItem);
+  const cartReady = useCartStore((s) => s.ready);
+  const initializeCart = useCartStore((s) => s.initialize);
+  const cartError = useCartStore((s) => s.error);
+
+  useEffect(() => {
+    void initializeCart();
+  }, [initializeCart]);
+  const cartMode = useCartStore((s) => s.mode);
+  const cartItems = useCartStore((s) => s.items);
   const { isFavorited, addToWishlist, removeFromWishlist } = useWishlistStore();
+
+  console.log(cartMode, "cartModecartModecartModecartMode");
+  console.log(cartItems, "cartItemscartItemscartItemscartItemscartItems");
 
   if (isLoading) {
     return (
       <>
         <AnnouncementBar />
-        <Header variant="solid"/>
+        <Header variant="solid" />
         <main className="pt-[calc(2.5rem+4rem)] pb-36 md:pb-16">
           <div className="container-content py-20 text-center text-[#6B7280]">
             Loading product…
@@ -108,40 +131,162 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const isWishlisted = isFavorited(product.id);
 
-  const handleAddToCart = () => {
-    if (!selectedSize && product.sizes[0] !== "One Size") {
-      toast.error("Please select a size");
-      return;
+  const validateSelection = () => {
+    const needsSize = product.sizes.length > 0;
+    const needsColor = product.colors.length > 0;
+    const missingSize = needsSize && !selectedSize;
+    const missingColor = needsColor && !selectedColor;
+    setSizeError(missingSize);
+    setColorError(missingColor);
+    if (missingSize || missingColor) {
+      const missing = [missingSize ? "size" : "", missingColor ? "color" : ""]
+        .filter(Boolean)
+        .join(" and ");
+      toast.error(`Please select a ${missing}.`);
+      return false;
     }
-    addItem({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      size: selectedSize || undefined,
-      color: selectedColor,
-      quantity,
-    });
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      toast.error("Quantity must be at least 1.");
+      return false;
+    }
+    return true;
   };
 
-  const handleBuyNow = () => {
-    if (!selectedSize && product.sizes[0] !== "One Size") {
-      toast.error("Please select a size");
+  const checkAvailability = async () => {
+    const result = await cartApi.checkStock([
+      {
+        productId: product.id,
+        size: selectedSize || undefined,
+        color: selectedColor || undefined,
+      },
+    ]);
+    const variant = result.items[0];
+    if (!variant?.found) {
+      toast.error("This size and color combination is unavailable.");
+      return false;
+    }
+    if (variant.stock <= 0) {
+      toast.error("This item is out of stock.");
+      return false;
+    }
+    const alreadyInCart =
+      cartMode === "guest"
+        ? (cartItems.find(
+            (item) =>
+              item.productId === product.id &&
+              (item.size ?? "").toLowerCase() === selectedSize.toLowerCase() &&
+              (item.color ?? "").toLowerCase() === selectedColor.toLowerCase(),
+          )?.quantity ?? 0)
+        : 0;
+    if (alreadyInCart + quantity > variant.stock) {
+      toast.error(
+        `Only ${variant.stock} available. You already have ${alreadyInCart} in your cart.`,
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // const handleAddToCart = async () => {
+  //   if (isAdding || !validateSelection()) return;
+  //   if (!cartReady || cartMode === "unknown") {
+  //     toast.error("Cart is loading. Please try again.");
+  //     return;
+  //   }
+  //   setIsAdding(true);
+  //   try {
+  //     // Guest cart is saved only in localStorage. Signed-in cart is handled by the backend.
+  //     if (cartMode === "guest" && !(await checkAvailability())) return;
+  //     const result = await addItem({
+  //       productId: product.id,
+  //       name: product.name,
+  //       price: product.price,
+  //       image: product.image,
+  //       slug: (product as Product & { slug?: string }).slug,
+  //       size: selectedSize || undefined,
+  //       color: selectedColor || undefined,
+  //       quantity,
+  //       needsSize: product.sizes.length > 0,
+  //       needsColor: product.colors.length > 0,
+  //     });
+  //     if (!result.ok) {
+  //       toast.error(result.message);
+  //       return;
+  //     }
+  //     toast.success("Added to cart successfully.");
+  //   } catch (error) {
+  //     toast.error(error instanceof Error ? error.message : "Could not add this product.");
+  //   } finally {
+  //     setIsAdding(false);
+  //   }
+  // };
+
+  const handleAddToCart = async () => {
+    if (isAdding) return;
+
+    if (!validateSelection()) return;
+
+    if (!cartReady || cartMode === "unknown") {
+      toast.error(cartError ?? "Cart initialization failed.");
       return;
     }
 
-    setBuyNowItem({
-      productId: product.id,
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      price: product.price,
-      quantity,
-      size: selectedSize,
-      color: selectedColor,
-    });
+    setIsAdding(true);
 
-    router.push("/checkout");
+    try {
+      const result = await addItem({
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        slug: (product as Product & { slug?: string }).slug,
+        size: selectedSize || undefined,
+        color: selectedColor || undefined,
+        quantity,
+        needsSize: product.sizes.length > 0,
+        needsColor: product.colors.length > 0,
+      });
+
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success("Product added to cart successfully!");
+    } catch (error) {
+      console.error("Add to cart failed:", error);
+
+      toast.error(
+        error instanceof Error ? error.message : "Unable to add product.",
+      );
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (isAdding || !validateSelection()) return;
+    setIsAdding(true);
+    try {
+      if (!(await checkAvailability())) return;
+      setBuyNowItem({
+        productId: product.id,
+        id: product.id,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity,
+        size: selectedSize,
+        color: selectedColor,
+      });
+      router.push("/checkout");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to check stock.",
+      );
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleWishlistToggle = () => {
@@ -175,7 +320,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   return (
     <>
       <AnnouncementBar />
-      <Header variant="solid"/>
+      <Header variant="solid" />
 
       <main className="pt-[calc(2.5rem+4rem)] pb-36 md:pb-16">
         <div className="container-content">
@@ -237,7 +382,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 )}
               </div>
 
-              {product.colors.length > 1 && (
+              {product.colors.length > 0 && (
                 <div>
                   <label className="text-sm font-semibold text-[#0F0F0F] mb-3 block">
                     Color:{" "}
@@ -248,8 +393,16 @@ export default function ProductDetailPage({ params }: PageProps) {
                   <ColorSelector
                     colors={product.colors}
                     selected={selectedColor}
-                    onChange={setSelectedColor}
+                    onChange={(color) => {
+                      setSelectedColor(color);
+                      setColorError(false);
+                    }}
                   />
+                  {colorError && (
+                    <p role="alert" className="mt-2 text-sm text-red-600">
+                      Please select a color.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -261,20 +414,58 @@ export default function ProductDetailPage({ params }: PageProps) {
                 onOpenGuide={() => setIsSizeGuideOpen(true)}
               />
 
+              {sizeError && (
+                <p role="alert" className="text-sm text-red-600">
+                  Please select a size.
+                </p>
+              )}
+
               <QuantityStepper value={quantity} onChange={setQuantity} />
 
               <div className="flex gap-3 pt-2">
-                <button
+                {/* <button
                   onClick={handleAddToCart}
                   className="button-primary flex-1 h-12 text-base"
-                  disabled={!selectedSize && product.sizes[0] !== "One Size"}
+                  disabled={isAdding || !cartReady}
                 >
-                  Add to Cart
-                </button>
+                  {isAdding ? "Please wait..." : "Add to Cart"}
+                </button> */}
+
+                <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={isAdding || !cartReady}
+                    className="button-primary w-full h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAdding
+                      ? "Adding..."
+                      : !cartReady
+                        ? "Loading Cart..."
+                        : "Add to Cart"}
+                  </button>
+
+                  {cartError && !cartReady && (
+                    <div className="mt-3 rounded-lg bg-red-50 p-3">
+                      <p role="alert" className="text-sm text-red-600">
+                        {cartError}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => void initializeCart()}
+                        className="mt-2 text-sm font-semibold underline text-red-700"
+                      >
+                        Retry Cart Connection
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={handleBuyNow}
                   className="button-secondary flex-1 h-12 text-base"
-                  // disabled={!selectedSize && product.sizes[0] !== "One Size"}
+                  disabled={isAdding}
                 >
                   Buy Now
                 </button>
@@ -329,7 +520,12 @@ export default function ProductDetailPage({ params }: PageProps) {
         )}
       </AnimatePresence>
 
-      <MobileStickyBar price={product.price} onAddToCart={handleAddToCart} />
+      <MobileStickyBar
+        price={product.price}
+        onAddToCart={() => {
+          void handleAddToCart();
+        }}
+      />
 
       <Footer />
       <BottomNav />

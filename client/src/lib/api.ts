@@ -1,6 +1,6 @@
 const API_BASE_URL =
-  // process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://api.baleryon.in/api";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+  // process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://api.baleryon.in/api";
 
 
 // const API_BASE_URL =

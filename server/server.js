@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+
 
 import connect from "./connect/connect.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
@@ -13,24 +15,20 @@ import cmsRouter from "./routes/cmsRouter.js";
 import orderRouter from "./routes/orderRoutes.js";
 import orderTrackingRouter from "./routes/orderTrackerRouter.js";
 import addressesRouter from "./routes/addressRoutes.js";
-import profileRoutes from "./routes/profileRoutes.js"
-import reviewRoutes from "./routes/reviewRoutes.js"
-import exchangeRoutes from "./routes/exchangeRoutes.js"
+import profileRoutes from "./routes/profileRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import exchangeRoutes from "./routes/exchangeRoutes.js";
 // landing
 import categoryRoute from "./routes//landing/categoryRoute.js";
 import limitedSeasonRoute from "./routes/landing/limitedSeasonRoute.js";
-import BannerRouter from "./routes/landing/bannerRouter.js"
-import communityRoutes from "./routes/landing/communityRoutes.js"
+import BannerRouter from "./routes/landing/bannerRouter.js";
+import communityRoutes from "./routes/landing/communityRoutes.js";
 import instagramRouter from "./routes/landing/instagramRouter.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
 
-
-
-import deliveryRoutes from "./routes/deliveryRouter.js"
-import couponRoutes from "./routes/couponRoutes.js"
-
-
-
-
+import deliveryRoutes from "./routes/deliveryRouter.js";
+import couponRoutes from "./routes/couponRoutes.js";
 
 import authRouter from "./routes/authRouter.js";
 import sanitizedConfig from "./config.js";
@@ -40,8 +38,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
@@ -49,6 +49,8 @@ app.use(
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
+
 
 // db Connectig
 connect()
@@ -64,6 +66,8 @@ app.use("/api/admin/product/", productRouter);
 app.use("/api/admin/catalog/", catalogRouter);
 app.use("/api/admin/cms/", cmsRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/viewOrders", orderTrackingRouter);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reviews", reviewRoutes);
@@ -77,7 +81,6 @@ app.use("/api/delivery", deliveryRoutes);
 app.use("/api/coupons", couponRoutes);
 
 app.use("/api/addresses", addressesRouter);
-
 
 // user managment router
 app.use("/api/admin/userManagment/", userManagmentRouter);

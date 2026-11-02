@@ -1,9 +1,8 @@
-
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingCart, ArrowRight } from "lucide-react";
+import { Heart, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,8 +13,7 @@ import { useWishlistStore } from "@/store/useWishlistStore";
 
 export function NewArrivals() {
   const addToCart = useCartStore((state) => state.addItem);
-  const { isFavorited, addToWishlist, removeFromWishlist } =
-    useWishlistStore();
+  const { isFavorited, addToWishlist, removeFromWishlist } = useWishlistStore();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -36,17 +34,17 @@ export function NewArrivals() {
     };
   }, []);
 
-  const handleAddToCart = (product: Product) => {
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      quantity: 1,
-    });
+  // const handleAddToCart = (product: Product) => {
+  //   addToCart({
+  //     productId: product.id,
+  //     name: product.name,
+  //     price: product.price,
+  //     image: product.image,
+  //     quantity: 1,
+  //   });
 
-    toast.success(`${product.name} added to cart`);
-  };
+  //   toast.success(`${product.name} added to cart`);
+  // };
 
   const handleWishlist = (product: Product) => {
     if (isFavorited(product.id)) {
@@ -116,7 +114,7 @@ export function NewArrivals() {
                 aria-label={`View ${product.name} details`}
                 className="block"
               >
-                <div className="relative overflow-hidden rounded-2xl bg-[#F5F5F5] aspect-[3/4] mb-4">
+                {/* <div className="relative overflow-hidden rounded-2xl bg-[#F5F5F5] aspect-[3/4] mb-4">
                   <Image
                     src={
                       hovered === product.id && product.image2
@@ -129,14 +127,127 @@ export function NewArrivals() {
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                   />
 
-                  {/* Discount badge */}
+                 
                   <div className="absolute top-2.5 left-2.5 z-10 bg-[#FF3B30] text-white px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide">
-                    {calculateDiscount(
-                      product.originalPrice,
-                      product.price,
-                    )}
-                    % OFF
+                    {calculateDiscount(product.originalPrice, product.price)}%
+                    OFF
                   </div>
+                </div> */}
+
+                {/* Product image card */}
+                {/* <div className="relative overflow-hidden rounded-2xl bg-[#F5F5F5] aspect-[3/4] mb-4 group">
+                  <Link
+                    href={`/products/${product.id}`}
+                    aria-label={`View ${product.name} details`}
+                    className="block w-full h-full"
+                  >
+                    <Image
+                      src={
+                        hovered === product.id && product.image2
+                          ? product.image2
+                          : product.image
+                      }
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 640px) 72vw, (max-width: 1024px) 45vw, 25vw"
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </Link>
+
+                  {calculateDiscount(product.originalPrice, product.price) >
+                    0 && (
+                    <div className="absolute top-3 left-3 z-10 bg-[#FF3B30] text-white px-2.5 py-1 rounded-full text-[10px] font-bold">
+                      {calculateDiscount(product.originalPrice, product.price)}%
+                      OFF
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleWishlist(product)}
+                    aria-label={
+                      isFavorited(product.id)
+                        ? "Remove from wishlist"
+                        : "Add to wishlist"
+                    }
+                    className={`absolute top-3 right-3 z-20 flex items-center justify-center w-10 h-10 rounded-full shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
+                      isFavorited(product.id)
+                        ? "bg-white text-[#FF3B30]"
+                        : "bg-white/95 text-[#0F0F0F] hover:text-[#FF3B30]"
+                    }`}
+                  >
+                    <Heart
+                      size={19}
+                      className={
+                        isFavorited(product.id)
+                          ? "fill-[#FF3B30] stroke-[#FF3B30]"
+                          : ""
+                      }
+                    />
+                  </button>
+                </div> */}
+
+                {/* Product image card */}
+                <div className="relative overflow-hidden rounded-2xl bg-[#F5F5F5] aspect-[3/4] mb-4">
+                  {/* Product image link */}
+                  <Link
+                    href={`/products/${product.id}`}
+                    aria-label={`View ${product.name} details`}
+                    className="absolute inset-0 z-0 block"
+                  >
+                    <Image
+                      src={
+                        hovered === product.id && product.image2
+                          ? product.image2
+                          : product.image
+                      }
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 640px) 72vw, (max-width: 1024px) 45vw, 25vw"
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </Link>
+
+                  {/* Discount badge */}
+                  {calculateDiscount(product.originalPrice, product.price) >
+                    0 && (
+                    <div className="absolute top-3 left-3 z-10 pointer-events-none bg-[#FF3B30] text-white px-2.5 py-1 rounded-full text-[10px] font-bold">
+                      {calculateDiscount(product.originalPrice, product.price)}%
+                      OFF
+                    </div>
+                  )}
+
+                  {/* Wishlist button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleWishlist(product);
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    aria-label={
+                      isFavorited(product.id)
+                        ? "Remove from wishlist"
+                        : "Add to wishlist"
+                    }
+                    className={`absolute top-3 right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
+                      isFavorited(product.id)
+                        ? "bg-white text-[#FF3B30]"
+                        : "bg-white/95 text-[#0F0F0F] hover:text-[#FF3B30]"
+                    }`}
+                  >
+                    <Heart
+                      size={19}
+                      className={
+                        isFavorited(product.id)
+                          ? "fill-[#FF3B30] stroke-[#FF3B30]"
+                          : ""
+                      }
+                    />
+                  </button>
                 </div>
               </Link>
 
@@ -162,10 +273,7 @@ export function NewArrivals() {
                   {product.category}
                 </p>
 
-                <Link
-                  href={`/products/${product.id}`}
-                  className="block"
-                >
+                <Link href={`/products/${product.id}`} className="block">
                   <h3 className="font-semibold text-sm sm:text-base line-clamp-2 group-hover:text-[#FF3B30] transition-colors">
                     {product.name}
                   </h3>
@@ -201,7 +309,7 @@ export function NewArrivals() {
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2 mt-4">
+              {/* <div className="flex gap-2 mt-4">
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
@@ -232,7 +340,30 @@ export function NewArrivals() {
                     }
                   />
                 </button>
-              </div>
+              </div> */}
+
+              {/* Wishlist button only */}
+              {/* <div className="flex gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => handleWishlist(product)}
+                  aria-label={
+                    isFavorited(product.id)
+                      ? "Remove from wishlist"
+                      : "Add to wishlist"
+                  }
+                  className={`px-3 py-2.5 sm:py-3 rounded-xl border active:scale-95 transition-all touch-manipulation ${
+                    isFavorited(product.id)
+                      ? "border-[#FF3B30] text-[#FF3B30] bg-red-50"
+                      : "border-[#E5E5E5] text-[#0F0F0F] hover:border-[#FF3B30] hover:text-[#FF3B30]"
+                  }`}
+                >
+                  <Heart
+                    size={17}
+                    className={isFavorited(product.id) ? "fill-current" : ""}
+                  />
+                </button>
+              </div> */}
             </motion.div>
           ))}
         </div>
