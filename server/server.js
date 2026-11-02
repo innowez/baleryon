@@ -4,7 +4,6 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 
-
 import connect from "./connect/connect.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
 import productRouter from "./routes/productRouter.js";
@@ -38,7 +37,11 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: [
+      "https://baleryon.in",
+      "https://api.baleryon.in",
+      "baleryon-client-q9ohm6kjb-baleryon.vercel.app",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -50,7 +53,6 @@ app.use(bodyParser.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
-
 
 // db Connectig
 connect()
