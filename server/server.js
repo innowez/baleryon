@@ -39,10 +39,10 @@ app.use(
   cors({
     origin: [
       "*",
-      "http://localhost:3000"
-      // "https://baleryon.in",
-      // "https://api.baleryon.in",
-      // "baleryon-client-q9ohm6kjb-baleryon.vercel.app",
+      // "http://localhost:3000",
+      "https://baleryon.in",
+      "https://api.baleryon.in",
+      "baleryon-client-q9ohm6kjb-baleryon.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
