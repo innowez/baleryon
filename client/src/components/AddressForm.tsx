@@ -191,47 +191,66 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
   const addressError = useAddressStore((state) => state.error);
 
   // Auto-fill city + state from the PIN code.
+
   useEffect(() => {
     const pin = formData.postalCode.trim();
 
     if (!/^[1-9][0-9]{5}$/.test(pin) || pin === lastPin.current) {
-      if (!/^[1-9][0-9]{5}$/.test(pin)) setPinStatus("idle");
       return;
     }
 
     lastPin.current = pin;
-    let cancelled = false;
-    setPinStatus("loading");
 
-    apiFetch<DeliveryCheckResponse>(`/api/delivery/check/${pin}`)
-      .then((data) => {
+    let cancelled = false;
+
+    const lookupPin = async () => {
+      setPinStatus("loading");
+
+      try {
+        const data = await apiFetch<DeliveryCheckResponse>(
+          `/api/delivery/check/${pin}`,
+        );
+
         if (cancelled) return;
 
         const state = matchState(data.state);
         const city = data.city ? toTitleCase(data.city) : "";
+
         let filled = false;
 
         setFormData((prev) => {
           const next = { ...prev };
+
           if (city && (cityAuto.current || !prev.city.trim())) {
             next.city = city;
             cityAuto.current = true;
             filled = true;
           }
+
           if (state && (stateAuto.current || !prev.state.trim())) {
             next.state = state;
             stateAuto.current = true;
             filled = true;
           }
+
           return next;
         });
 
-        setErrors((prev) => ({ ...prev, city: "", state: "" }));
+        setErrors((prev) => ({
+          ...prev,
+          city: "",
+          state: "",
+        }));
+
         setPinStatus(filled ? "filled" : "idle");
-      })
-      .catch(() => {
-        if (!cancelled) setPinStatus("idle"); // lookup is optional; fill manually
-      });
+      } catch {
+        if (!cancelled) {
+          setPinStatus("idle");
+        }
+      }
+    };
+
+    void lookupPin();
 
     return () => {
       cancelled = true;
@@ -426,11 +445,7 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          noValidate
-          className="p-4 space-y-4"
-        >
+        <form onSubmit={handleSubmit} noValidate className="p-4 space-y-4">
           {TEXT_FIELDS.map((field) => {
             const value = formData[field.name];
             const id = `address-${field.name}`;

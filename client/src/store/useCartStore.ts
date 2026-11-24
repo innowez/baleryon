@@ -86,6 +86,8 @@ interface CartState {
   totalItems: number;
   totalPrice: number;
 
+  resetGuestCart: () => void; // Add this
+
   initialize: () => Promise<void>;
   setSession: (isLoggedIn: boolean) => Promise<void>;
   refresh: () => Promise<void>;
