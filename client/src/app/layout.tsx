@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 
 import CartInitializer from "@/components/CartInitializer";
 import WishlistInitializer from "@/components/WishlistInitializer";
+import AddressInitializer from "@/components/AddressInitializer";
 
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-white text-[#0F0F0F]">
         <CartInitializer />
         <WishlistInitializer />
+        <AddressInitializer />
         {children}
         <Toaster richColors position="top-center" />
       </body>

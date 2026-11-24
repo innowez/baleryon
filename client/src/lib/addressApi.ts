@@ -1,6 +1,8 @@
-// lib/addressApi.ts
 
-import { apiFetch, apiPost } from "./api";
+import { useAuthStore } from "@/store/useAuthStore";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface Address {
   id: string;
@@ -16,16 +18,14 @@ export interface Address {
   city: string;
   state: string;
   country: string;
-
   postalCode: string;
 
   isDefault: boolean;
-
   createdAt: string;
 }
 
 export type AddressInput = {
-  userId: string;
+  userId?: string;
   fullName: string;
   phone: string;
   addressLine1: string;
@@ -38,64 +38,118 @@ export type AddressInput = {
   isDefault?: boolean;
 };
 
-export type UpdateAddressInput = Partial<Omit<AddressInput, "userId">>;
+export type UpdateAddressInput = Partial<
+  Omit<AddressInput, "userId">
+>;
 
-/**
- * CREATE ADDRESS
- */
-export const createAddress = async (data: AddressInput): Promise<Address> => {
-  return apiPost<Address>("/api/addresses", data);
-};
+type ApiResponse<T> =
+  | T
+  | {
+      success: boolean;
+      message?: string;
+      data: T;
+    };
 
-/**
- * GET ALL ADDRESSES OF USER
- */
-export const getAddresses = async (userId: string): Promise<Address[]> => {
-  return apiFetch<Address[]>(`/api/addresses/${userId}`);
-};
+async function request<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = useAuthStore.getState().token;
 
-/**
- * GET SINGLE ADDRESS
- */
-export const getAddressById = async (addressId: string): Promise<Address> => {
-  return apiFetch<Address>(`/api/addresses/address/${addressId}`);
-};
+  if (!token) {
+    throw new Error(
+      "Please log in to access saved addresses."
+    );
+  }
 
-/**
- * UPDATE ADDRESS
- */
-export const updateAddress = async (
-  addressId: string,
-  data: UpdateAddressInput,
-): Promise<Address> => {
-  return apiFetch<Address>(`/api/addresses/${addressId}`, {
-    method: "PUT",
+  const response = await fetch(
+    `${API_URL}/api/addresses${path}`,
+    {
+      ...options,
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    }
+  );
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      json?.message ??
+        `Address request failed (${response.status})`
+    );
+  }
+
+  if (
+    json &&
+    typeof json === "object" &&
+    "success" in json &&
+    "data" in json
+  ) {
+    return json.data as T;
+  }
+
+  return json as T;
+}
+
+// CREATE ADDRESS
+export const createAddress = (
+  data: AddressInput
+): Promise<Address> =>
+  request<Address>("/", {
+    method: "POST",
     body: JSON.stringify(data),
   });
-};
 
-/**
- * DELETE ADDRESS
- */
-export const deleteAddress = async (
-  addressId: string,
-): Promise<{ success: boolean }> => {
-  return apiFetch<{ success: boolean }>(`/api/addresses/${addressId}`, {
-    method: "DELETE",
-  });
-};
+// GET ALL ADDRESSES
+// userId is optional for compatibility with old callers.
+// Backend determines user from JWT, not this argument.
+export const getAddresses = (
+  _userId?: string
+): Promise<Address[]> =>
+  request<Address[]>("/");
 
-/**
- * SET DEFAULT ADDRESS
- */
-export const setDefaultAddress = async (
-  userId: string,
+// GET SINGLE ADDRESS
+export const getAddressById = (
+  addressId: string
+): Promise<Address> =>
+  request<Address>(
+    `/${encodeURIComponent(addressId)}`
+  );
+
+// UPDATE ADDRESS
+export const updateAddress = (
   addressId: string,
-): Promise<Address> => {
-  return apiFetch<Address>(`/api/addresses/${addressId}/default`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      userId,
-    }),
-  });
-};
+  data: UpdateAddressInput
+): Promise<Address> =>
+  request<Address>(
+    `/${encodeURIComponent(addressId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }
+  );
+
+// DELETE ADDRESS
+export const deleteAddress = (
+  addressId: string
+): Promise<{ success: boolean }> =>
+  request<{ success: boolean }>(
+    `/${encodeURIComponent(addressId)}`,
+    { method: "DELETE" }
+  );
+
+// SET DEFAULT ADDRESS
+export const setDefaultAddress = (
+  _userId: string,
+  addressId: string
+): Promise<Address> =>
+  request<Address>(
+    `/${encodeURIComponent(addressId)}/default`,
+    { method: "PATCH" }
+  );

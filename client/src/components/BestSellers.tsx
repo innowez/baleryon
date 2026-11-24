@@ -19,15 +19,15 @@ export function BestSellers() {
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
 
   const items = useWishlistStore((state) => state.items);
-  const wishlistReady = useWishlistStore((state) => state.ready);
+  // const wishlistReady = useWishlistStore((state) => state.ready);
   const wishlistSyncing = useWishlistStore((state) => state.syncing);
-  const wishlistError = useWishlistStore((state) => state.error);
+  // const wishlistError = useWishlistStore((state) => state.error);
 
-  const addToWishlist = useWishlistStore((state) => state.addToWishlist);
+  // const addToWishlist = useWishlistStore((state) => state.addToWishlist);
 
-  const removeFromWishlist = useWishlistStore(
-    (state) => state.removeFromWishlist,
-  );
+  // const removeFromWishlist = useWishlistStore(
+  //   (state) => state.removeFromWishlist,
+  // );
 
   useEffect(() => {
     let active = true;

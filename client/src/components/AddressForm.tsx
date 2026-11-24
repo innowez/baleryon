@@ -1,22 +1,89 @@
 "use client";
 
-import { useState } from "react";
-import { useAddressStore, Address } from "@/store/useAddressStore";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { X } from "lucide-react";
 import { motion } from "motion/react";
-import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 
+import { useAddressStore, type Address } from "@/store/useAddressStore";
+
+import type { AddressInput } from "@/lib/addressApi";
+import { apiFetch } from "@/lib/api";
+
 interface AddressFormProps {
-  onClose: () => void;
+  onClose: () => void | Promise<void>;
   address?: Address | null;
 }
 
-export function AddressForm({ onClose, address }: AddressFormProps) {
-  const { user } = useAuthStore();
-  const { addAddress, updateAddress } = useAddressStore();
+type FormData = Omit<AddressInput, "userId">;
 
-  const getInitialFormData = (address?: Address | null) => ({
+interface DeliveryCheckResponse {
+  available: boolean;
+  city?: string;
+  state?: string;
+}
+
+const COUNTRY = "India";
+
+const INDIAN_STATES = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  // Union Territories
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+];
+
+const toTitleCase = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+
+const matchState = (value?: string) => {
+  const wanted = (value ?? "").trim().toLowerCase().replace(/&/g, "and");
+  return INDIAN_STATES.find((s) => s.toLowerCase() === wanted) ?? "";
+};
+
+function getInitialFormData(address?: Address | null): FormData {
+  return {
     fullName: address?.fullName ?? "",
     phone: address?.phone ?? "",
     addressLine1: address?.addressLine1 ?? "",
@@ -24,208 +91,298 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
     landmark: address?.landmark ?? "",
     city: address?.city ?? "",
     state: address?.state ?? "",
-    country: address?.country ?? "India",
+    country: COUNTRY, // always India
     postalCode: address?.postalCode ?? "",
     isDefault: address?.isDefault ?? false,
-  });
-
-  const [formData, setFormData] = useState(() => getInitialFormData(address));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  //  useEffect(() => {
-  //   if (address) {
-  //     setFormData({
-  //       fullName: address.fullName,
-  //       phone: address.phone,
-  //       addressLine1: address.addressLine1,
-  //       addressLine2: address.addressLine2 || "",
-  //       landmark: address.landmark || "",
-  //       city: address.city,
-  //       state: address.state,
-  //       country: address.country,
-  //       postalCode: address.postalCode,
-  //       isDefault: address?.isDefault || false,
-  //     });
-  //   }
-  // }, [address]);
-
-  // const validateForm = () => {
-  //   const newErrors: Record<string, string> = {};
-
-  //   if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
-  //   if (!formData.phone.trim()) newErrors.phone = "Phone is required";
-  //   if (!/^\d{10}$/.test(formData.phone))
-  //     newErrors.phone = "Phone must be 10 digits";
-  //   if (!formData.street.trim()) newErrors.street = "Address is required";
-  //   if (!formData.city.trim()) newErrors.city = "City is required";
-  //   if (!formData.state.trim()) newErrors.state = "State is required";
-  //   if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required";
-  //   if (!/^\d{6}$/.test(formData.zipCode))
-  //     newErrors.zipCode = "ZIP code must be 6 digits";
-
-  //   setErrors(newErrors);
-  //   return Object.keys(newErrors).length === 0;
-  // };
-
-  // const handleSubmit = (e: React.FormEvent) => {
-  //   e.preventDefault();
-
-  //   if (!validateForm()) return;
-
-  //   if (address) {
-  //     updateAddress(address.id, formData);
-  //   } else {
-  //     addAddress({
-  //       userId: user!.id,
-  //       fullName: formData.fullName,
-  //       phone: formData.phone,
-  //       addressLine1: formData.addressLine1,
-  //       city: formData.city,
-  //       state: formData.state,
-  //       postalCode: formData.postalCode,
-  //       country: formData.country,
-  //       isDefault: formData.isDefault,
-  //     });
-  //   }
-
-  //   onClose();
-  // };
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.fullName.trim()) newErrors.fullName = "Name is required";
-
-    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
-
-    if (!/^\d{10}$/.test(formData.phone))
-      newErrors.phone = "Phone must be 10 digits";
-
-    if (!formData.addressLine1.trim())
-      newErrors.addressLine1 = "Address is required";
-
-    if (!formData.city.trim()) newErrors.city = "City is required";
-
-    if (!formData.state.trim()) newErrors.state = "State is required";
-
-    if (!formData.postalCode.trim())
-      newErrors.postalCode = "Postal code is required";
-
-    if (!/^\d{6}$/.test(formData.postalCode))
-      newErrors.postalCode = "Postal code must be 6 digits";
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
   };
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
+}
 
-  //   if (!validateForm()) return;
+// Order used to focus the first invalid field.
+const FIELD_ORDER = [
+  "fullName",
+  "phone",
+  "addressLine1",
+  "postalCode",
+  "city",
+  "state",
+];
 
-  //   // const payload: AddressInput = {
-  //   //   userId: user!.id,
-  //   //   fullName: formData.fullName,
-  //   //   phone: formData.phone,
-  //   //   addressLine1: formData.addressLine1,
-  //   //   city: formData.city,
-  //   //   state: formData.state,
-  //   //   postalCode: formData.postalCode,
-  //   //   country: formData.country,
-  //   //   isDefault: formData.isDefault,
-  //   // };
+const REQUIRED_FIELDS = new Set([
+  "fullName",
+  "phone",
+  "addressLine1",
+  "postalCode",
+  "city",
+  "state",
+]);
 
-  //   const payload = {
-  //     userId: user!.id,
-  //     fullName: formData.fullName,
-  //     phone: formData.phone,
-  //     addressLine1: formData.addressLine1,
-  //     city: formData.city,
-  //     state: formData.state,
-  //     postalCode: formData.postalCode,
-  //     country: formData.country,
-  //     isDefault: formData.isDefault,
-  //   };
+const TEXT_FIELDS: {
+  name: keyof FormData;
+  label: string;
+  placeholder: string;
+  autoComplete: string;
+}[] = [
+  {
+    name: "fullName",
+    label: "Full Name",
+    placeholder: "Enter full name",
+    autoComplete: "name",
+  },
+  {
+    name: "phone",
+    label: "Phone Number",
+    placeholder: "10 digit mobile number",
+    autoComplete: "tel-national",
+  },
+  {
+    name: "addressLine1",
+    label: "Street Address",
+    placeholder: "House / flat number, street, area",
+    autoComplete: "address-line1",
+  },
+  {
+    name: "addressLine2",
+    label: "Address Line 2 (Optional)",
+    placeholder: "Apartment, floor, building",
+    autoComplete: "address-line2",
+  },
+  {
+    name: "landmark",
+    label: "Landmark (Optional)",
+    placeholder: "Nearby landmark",
+    autoComplete: "off",
+  },
+  {
+    name: "postalCode",
+    label: "PIN Code",
+    placeholder: "6 digit PIN code",
+    autoComplete: "postal-code",
+  },
+  {
+    name: "city",
+    label: "City",
+    placeholder: "Enter city",
+    autoComplete: "address-level2",
+  },
+];
 
-  //   if (address) {
-  //     await updateAddress(address.id, payload);
-  //   } else {
-  //     console.log(
-  //       payload,
-  //       "payloadpayloadpayloadpayloadpayloadpayloadpayloadpayload",
-  //     );
+export function AddressForm({ onClose, address }: AddressFormProps) {
+  const [formData, setFormData] = useState<FormData>(() =>
+    getInitialFormData(address),
+  );
 
-  //     await addAddress(payload);
-  //   }
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [pinStatus, setPinStatus] = useState<"idle" | "loading" | "filled">(
+    "idle",
+  );
 
-  //   onClose();
-  // };
+  // City/state filled by the PIN lookup can be replaced by the next lookup;
+  // anything the customer typed or picked themselves is never overwritten.
+  const cityAuto = useRef(!address?.city);
+  const stateAuto = useRef(!address?.state);
+  // When editing, don't re-run the lookup for the PIN that is already saved.
+  const lastPin = useRef(address?.postalCode ?? "");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const addAddress = useAddressStore((state) => state.addAddress);
+  const updateAddress = useAddressStore((state) => state.updateAddress);
+  const addressMode = useAddressStore((state) => state.mode);
+  const addressReady = useAddressStore((state) => state.ready);
+  const addressError = useAddressStore((state) => state.error);
 
-    console.log(
-      address,
-      "addressaddressaddressaddressaddressaddressaddressaddress",
-    );
+  // Auto-fill city + state from the PIN code.
+  useEffect(() => {
+    const pin = formData.postalCode.trim();
 
-    console.log(
-      user,
-      "useruseruseruseruseruseruseruseruseruseruseruseruseruser",
-    );
-
-
-    console.log(
-      formData,
-      "formDataformDataformDataformDataformDataformDataformData",
-    );
-
-    if (!user) {
-      toast.error("You're not signed in.", {
-        description: "Please log in before adding or updating an address.",
-        duration: 3000,
-      });
-
-      onClose();
+    if (!/^[1-9][0-9]{5}$/.test(pin) || pin === lastPin.current) {
+      if (!/^[1-9][0-9]{5}$/.test(pin)) setPinStatus("idle");
       return;
     }
 
-    if (!validateForm()) return;
+    lastPin.current = pin;
+    let cancelled = false;
+    setPinStatus("loading");
 
-    const payload = {
-      userId: user.id,
-      fullName: formData.fullName,
-      phone: formData.phone,
-      addressLine1: formData.addressLine1,
-      city: formData.city,
-      state: formData.state,
-      postalCode: formData.postalCode,
-      country: formData.country,
-      isDefault: formData.isDefault,
+    apiFetch<DeliveryCheckResponse>(`/api/delivery/check/${pin}`)
+      .then((data) => {
+        if (cancelled) return;
+
+        const state = matchState(data.state);
+        const city = data.city ? toTitleCase(data.city) : "";
+        let filled = false;
+
+        setFormData((prev) => {
+          const next = { ...prev };
+          if (city && (cityAuto.current || !prev.city.trim())) {
+            next.city = city;
+            cityAuto.current = true;
+            filled = true;
+          }
+          if (state && (stateAuto.current || !prev.state.trim())) {
+            next.state = state;
+            stateAuto.current = true;
+            filled = true;
+          }
+          return next;
+        });
+
+        setErrors((prev) => ({ ...prev, city: "", state: "" }));
+        setPinStatus(filled ? "filled" : "idle");
+      })
+      .catch(() => {
+        if (!cancelled) setPinStatus("idle"); // lookup is optional; fill manually
+      });
+
+    return () => {
+      cancelled = true;
     };
-    // alert("ASJFAL");
-    console.log(address,"addressaddressaddressaddress");
-    
-    if (address) {
-      await updateAddress(address.id, payload);
-    } else {
-      console.log(payload,"payloadpayloadpayloadpayloadpayload");
-
-      await addAddress(payload);
-    }
-
-    onClose();
-  };
+  }, [formData.postalCode]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    const target = event.target;
+    const { name } = target;
+    let value: string | boolean = target.value;
+
+    if (target instanceof HTMLInputElement && target.type === "checkbox") {
+      value = target.checked;
+    } else if (name === "phone" || name === "postalCode") {
+      value = (value as string).replace(/\D/g, ""); // digits only
+    }
+
+    if (name === "city") cityAuto.current = false;
+    if (name === "state") stateAuto.current = false;
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
+
+  const validateForm = () => {
+    const nextErrors: Record<string, string> = {};
+
+    if (formData.fullName.trim().length < 2) {
+      nextErrors.fullName = "Full name is required";
+    }
+
+    if (!/^[6-9][0-9]{9}$/.test(formData.phone.trim())) {
+      nextErrors.phone = "Enter a valid 10-digit mobile number";
+    }
+
+    if (!formData.addressLine1.trim()) {
+      nextErrors.addressLine1 = "Street address is required";
+    } else if (formData.addressLine1.trim().length < 5) {
+      nextErrors.addressLine1 =
+        "Enter your house / flat number and street (at least 5 characters)";
+    }
+
+    if (!/^[1-9][0-9]{5}$/.test(formData.postalCode.trim())) {
+      nextErrors.postalCode = "Enter a valid 6-digit PIN code";
+    }
+
+    if (formData.city.trim().length < 2) {
+      nextErrors.city = "City is required";
+    }
+
+    if (!formData.state.trim()) {
+      nextErrors.state = "Please select your state";
+    }
+
+    setErrors(nextErrors);
+
+    const firstInvalid = FIELD_ORDER.find((key) => nextErrors[key]);
+    if (firstInvalid) {
+      document.getElementById(`address-${firstInvalid}`)?.focus();
+    }
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (saving) return;
+
+    if (!validateForm()) return;
+
+    if (!addressReady || addressMode === "unknown") {
+      toast.error(addressError ?? "Address storage is initializing.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const payload: AddressInput = {
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        addressLine1: formData.addressLine1.trim(),
+        addressLine2: formData.addressLine2?.trim(),
+        landmark: formData.landmark?.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        country: COUNTRY,
+        postalCode: formData.postalCode.trim(),
+        isDefault: formData.isDefault,
+      };
+
+      if (address?.id) {
+        await updateAddress(address.id, payload);
+
+        toast.success("Address updated successfully");
+      } else {
+        const savedAddress = await addAddress(payload);
+
+        if (!savedAddress) {
+          throw new Error(
+            useAddressStore.getState().error ?? "Unable to save address.",
+          );
+        }
+
+        toast.success(
+          addressMode === "guest"
+            ? "Address saved on this device"
+            : "Address saved successfully",
+        );
+      }
+
+      await onClose();
+    } catch (error) {
+      console.error("Address save failed:", error);
+
+      toast.error(
+        error instanceof Error ? error.message : "Unable to save address.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputClass = (hasError: boolean) =>
+    `w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:border-[#0F0F0F] ${
+      hasError ? "border-[#FF3B30]" : "border-[#E5E5E5]"
+    }`;
+
+  const renderLabel = (htmlFor: string, text: string) => {
+    const key = htmlFor.replace("address-", "");
+    return (
+      <label htmlFor={htmlFor} className="block text-sm font-semibold mb-2">
+        {text}
+        {REQUIRED_FIELDS.has(key) && (
+          <span className="text-[#FF3B30]" aria-hidden="true">
+            {" "}
+            *
+          </span>
+        )}
+      </label>
+    );
+  };
+
+  // Keep an old saved state selectable even if it isn't in the standard list.
+  const stateOptions =
+    formData.state && !INDIAN_STATES.includes(formData.state)
+      ? [formData.state, ...INDIAN_STATES]
+      : INDIAN_STATES;
 
   return (
     <motion.div
@@ -238,170 +395,184 @@ export function AddressForm({ onClose, address }: AddressFormProps) {
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="bg-white w-full sm:w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto"
+        transition={{
+          type: "spring",
+          damping: 30,
+          stiffness: 300,
+        }}
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E5E5] sticky top-0 bg-white">
-          <h2 className="text-lg font-bold">
-            {address ? "Edit Address" : "Add New Address"}
-          </h2>
+        <div className="flex items-center justify-between p-4 border-b border-[#E5E5E5] sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg font-bold">
+              {address ? "Edit Address" : "Add New Address"}
+            </h2>
+
+            <p className="text-xs text-[#6B7280] mt-1">
+              {addressMode === "guest"
+                ? "Saved locally for guest checkout"
+                : "Delivery address"}
+            </p>
+          </div>
+
           <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
+            type="button"
+            onClick={() => void onClose()}
+            disabled={saving}
+            aria-label="Close address form"
+            className="p-2 hover:bg-[#F5F5F5] rounded-lg"
           >
             <X size={24} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="Enter full name"
-            />
-            {errors.fullName && (
-              <p className="text-xs text-[#FF3B30] mt-1">{errors.fullName}</p>
-            )}
-          </div>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="p-4 space-y-4"
+        >
+          {TEXT_FIELDS.map((field) => {
+            const value = formData[field.name];
+            const id = `address-${field.name}`;
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              maxLength={10}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="10 digit number"
-            />
-            {errors.phone && (
-              <p className="text-xs text-[#FF3B30] mt-1">{errors.phone}</p>
-            )}
-          </div>
+            return (
+              <div key={field.name}>
+                {renderLabel(id, field.label)}
 
-          {/* Street Address */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Street Address
-            </label>
-            <input
-              type="text"
-              name="addressLine1"
-              value={formData.addressLine1}
-              onChange={handleChange}
-               className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-               placeholder="Street Address"
-            />
-            {errors.street && (
-              <p className="text-xs text-[#FF3B30] mt-1">{errors.street}</p>
-            )}
-          </div>
+                <input
+                  id={id}
+                  type={field.name === "phone" ? "tel" : "text"}
+                  name={field.name}
+                  value={typeof value === "string" ? value : ""}
+                  onChange={handleChange}
+                  autoComplete={field.autoComplete}
+                  inputMode={
+                    field.name === "phone" || field.name === "postalCode"
+                      ? "numeric"
+                      : "text"
+                  }
+                  maxLength={
+                    field.name === "phone"
+                      ? 10
+                      : field.name === "postalCode"
+                        ? 6
+                        : undefined
+                  }
+                  placeholder={field.placeholder}
+                  aria-required={REQUIRED_FIELDS.has(field.name)}
+                  aria-invalid={!!errors[field.name]}
+                  className={inputClass(!!errors[field.name])}
+                />
 
-          {/* City */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">City</label>
-            <input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="Enter city"
-            />
-            {errors.city && (
-              <p className="text-xs text-[#FF3B30] mt-1">{errors.city}</p>
-            )}
-          </div>
+                {field.name === "postalCode" && pinStatus !== "idle" && (
+                  <p className="text-xs text-[#6B7280] mt-1">
+                    {pinStatus === "loading"
+                      ? "Checking PIN code..."
+                      : "City and state filled from your PIN code. You can edit them."}
+                  </p>
+                )}
+
+                {errors[field.name] && (
+                  <p className="text-xs text-[#FF3B30] mt-1">
+                    {errors[field.name]}
+                  </p>
+                )}
+              </div>
+            );
+          })}
 
           {/* State */}
           <div>
-            <label className="block text-sm font-semibold mb-2">State</label>
-            <input
-              type="text"
+            {renderLabel("address-state", "State")}
+
+            <select
+              id="address-state"
               name="state"
               value={formData.state}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="Enter state"
-            />
+              autoComplete="address-level1"
+              aria-required="true"
+              aria-invalid={!!errors.state}
+              className={inputClass(!!errors.state)}
+            >
+              <option value="">Select state</option>
+              {stateOptions.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
+
             {errors.state && (
               <p className="text-xs text-[#FF3B30] mt-1">{errors.state}</p>
             )}
           </div>
 
-          {/* ZIP Code */}
+          {/* Country: fixed to India */}
           <div>
-            <label className="block text-sm font-semibold mb-2">ZIP Code</label>
-            <input
-              type="text"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={handleChange}
-              maxLength={6}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
-              placeholder="6 digit code"
-            />
-            {errors.zipCode && (
-              <p className="text-xs text-[#FF3B30] mt-1">{errors.zipCode}</p>
-            )}
-          </div>
-
-          {/* Country */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Country</label>
-            <select
-              name="country"
-              value={formData.country}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:border-[#0F0F0F]"
+            <label
+              htmlFor="address-country"
+              className="block text-sm font-semibold mb-2"
             >
-              <option value="India">India</option>
-              <option value="Other">Other</option>
-            </select>
+              Country
+            </label>
+
+            <input
+              id="address-country"
+              name="country"
+              value={COUNTRY}
+              readOnly
+              tabIndex={-1}
+              aria-readonly="true"
+              autoComplete="country-name"
+              className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl bg-[#F5F5F5] text-[#6B7280] cursor-not-allowed"
+            />
+
+            <p className="text-xs text-[#6B7280] mt-1">
+              We currently deliver within India only.
+            </p>
           </div>
 
-          {/* Set as Default */}
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               name="isDefault"
-              checked={formData.isDefault}
+              checked={formData.isDefault ?? false}
               onChange={handleChange}
-              className="w-4 h-4"
+              className="w-4 h-4 accent-[#0F0F0F]"
             />
+
             <span className="text-sm font-medium">Set as default address</span>
           </label>
 
-          {/* Buttons */}
           <div className="flex gap-2 pt-4">
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 border border-[#E5E5E5] py-2.5 rounded-xl font-semibold hover:bg-[#F5F5F5] active:scale-95 transition-all"
+              onClick={() => void onClose()}
+              disabled={saving}
+              className="flex-1 border border-[#E5E5E5] py-2.5 rounded-xl font-semibold hover:bg-[#F5F5F5]"
             >
               Cancel
             </button>
+
             <button
               type="submit"
-              className="flex-1 bg-[#0F0F0F] text-white py-2.5 rounded-xl font-semibold hover:bg-[#0F0F0F]/90 active:scale-95 transition-all"
+              disabled={saving || !addressReady}
+              className="flex-1 bg-[#0F0F0F] text-white py-2.5 rounded-xl font-semibold hover:bg-[#0F0F0F]/90 disabled:opacity-50"
             >
-              {address ? "Update" : "Add"} Address
+              {saving
+                ? "Saving..."
+                : address
+                  ? "Update Address"
+                  : "Add Address"}
             </button>
           </div>
+
+          {addressError && !addressReady && (
+            <p role="alert" className="text-xs text-red-600">
+              {addressError}
+            </p>
+          )}
         </form>
       </motion.div>
     </motion.div>

@@ -8,7 +8,10 @@ type ActiveFiltersProps = {
   search: string;
   resultCount: number;
   defaultPriceMax: number;
-  onRemoveFilter: <K extends keyof FilterState>(key: K, value: FilterState[K]) => void;
+  onRemoveFilter: <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K],
+  ) => void;
   onRemoveSearch: () => void;
   onClearAll: () => void;
 };
@@ -41,10 +44,7 @@ export function ActiveFilters({
         <span className="text-sm text-[#6B7280]">
           Showing {resultCount} {resultCount === 1 ? "product" : "products"}
         </span>
-        <button
-          onClick={onClearAll}
-          className="text-xs font-semibold text-[#FF3B30] hover:text-[#FF3B30]/80 transition-colors"
-        >
+        <button type="button" onClick={onClearAll}>
           Clear All
         </button>
       </div>
@@ -56,7 +56,10 @@ export function ActiveFilters({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>Search: &quot;{search}&quot;</span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         )}
 
@@ -66,13 +69,16 @@ export function ActiveFilters({
             onClick={() =>
               onRemoveFilter(
                 "categories",
-                filters.categories.filter((c) => c !== category)
+                filters.categories.filter((c) => c !== category),
               )
             }
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>{category}</span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         ))}
 
@@ -85,9 +91,13 @@ export function ActiveFilters({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>
-              ₹{filters.priceMin.toLocaleString()} – ₹{filters.priceMax.toLocaleString()}
+              ₹{filters.priceMin.toLocaleString()} – ₹
+              {filters.priceMax.toLocaleString()}
             </span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         )}
 
@@ -97,7 +107,10 @@ export function ActiveFilters({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>{filters.rating}+ stars</span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         )}
 
@@ -107,13 +120,16 @@ export function ActiveFilters({
             onClick={() =>
               onRemoveFilter(
                 "colors",
-                filters.colors.filter((c) => c !== color)
+                filters.colors.filter((c) => c !== color),
               )
             }
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>{color}</span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         ))}
 
@@ -123,13 +139,16 @@ export function ActiveFilters({
             onClick={() =>
               onRemoveFilter(
                 "sizes",
-                filters.sizes.filter((s) => s !== size)
+                filters.sizes.filter((s) => s !== size),
               )
             }
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-medium hover:bg-[#E5E5E5] transition-colors group"
           >
             <span>Size: {size}</span>
-            <X size={14} className="text-[#6B7280] group-hover:text-[#0F0F0F]" />
+            <X
+              size={14}
+              className="text-[#6B7280] group-hover:text-[#0F0F0F]"
+            />
           </button>
         ))}
       </div>

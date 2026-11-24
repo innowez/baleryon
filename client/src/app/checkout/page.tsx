@@ -106,14 +106,14 @@ export default function CheckoutPage() {
   );
 
   const handleOpenAddressForm = () => {
-    if (!user) {
-      toast.warning("Please sign in to add an address.", {
-        description: "Log in to save and manage your delivery addresses.",
-        duration: 3000,
-      });
+    const addressState = useAddressStore.getState();
+
+    if (!addressState.ready) {
+      toast.error(addressState.error ?? "Addresses are still initializing.");
       return;
     }
 
+    setEditingAddress(null);
     setShowAddressForm(true);
   };
 
@@ -356,7 +356,7 @@ export default function CheckoutPage() {
       <div className="container-max">
         <div className="flex items-center gap-3 mb-8">
           <button
-             onClick={() => router.back()}
+            onClick={() => router.back()}
             className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
           >
             <ArrowLeft size={24} />
@@ -426,6 +426,8 @@ export default function CheckoutPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              setEditingAddress(address);
+                              setShowAddressForm(true);
 
                               if (!isLoggedIn || !user) {
                                 toast.warning("Login required", {
@@ -698,9 +700,10 @@ export default function CheckoutPage() {
             setShowAddressForm(false);
             setEditingAddress(null);
 
-            // Refresh addresses after adding or editing
-            if (user?.id) {
-              await fetchAddresses(user.id);
+            const addressState = useAddressStore.getState();
+
+            if (addressState.mode === "user") {
+              await addressState.fetchAddresses();
             }
           }}
         />

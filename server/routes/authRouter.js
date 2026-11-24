@@ -8,7 +8,8 @@ import {
   googleAuthController,
   googleCallbackController,
   sendSignupPhoneOtpController,
-  sendPhoneOtpController
+  sendPhoneOtpController,
+  sendAuthPhoneOtpController,
 } from "../controller/authController.js";
 
 import { protect } from "../middlewares/authMiddleware.js";
@@ -23,7 +24,7 @@ router.post("/login", loginController);
 router.post("/send-otp", sendPhoneOtpController);
 router.post("/signup/phone", signupWithPhoneController);
 router.post("/login/phone", loginWithPhoneController);
-
+router.post("/phone/send-otp", sendAuthPhoneOtpController);
 router.post("/signup/send-otp", sendSignupPhoneOtpController);
 
 // Google OAuth routes

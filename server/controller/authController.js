@@ -76,11 +76,8 @@ async function consumeOtp(rawPhone, code) {
 
   const storedOtp = await redis.get(`otp:${phone}`);
 
-  const entry = storedOtp
-    ? JSON.parse(storedOtp)
-    : null;
+  const entry = storedOtp ? JSON.parse(storedOtp) : null;
   console.log(entry, "entryentryentryentryentry");
-  
 
   if (!entry) {
     return {
@@ -129,7 +126,7 @@ async function consumeOtp(rawPhone, code) {
 
     if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
       await redis.del(`otp:${phone}`);
-        }
+    }
 
     return {
       ok: false,
@@ -142,7 +139,7 @@ async function consumeOtp(rawPhone, code) {
   if (!result.verified) {
     if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
       await redis.del(`otp:${phone}`);
-        }
+    }
 
     return {
       ok: false,
@@ -291,9 +288,7 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   const digits = normalizedPhone.replace(/\D/g, "");
 
   const phoneForLookup =
-    digits.length === 12 && digits.startsWith("91")
-      ? digits.slice(2)
-      : digits;
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
 
   const phoneVariants = [
     phoneForLookup,
@@ -349,9 +344,7 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
       now - existingOtp.lastSentAt < OTP_RESEND_INTERVAL_MS
     ) {
       const waitSeconds = Math.ceil(
-        (OTP_RESEND_INTERVAL_MS -
-          (now - existingOtp.lastSentAt)) /
-          1000,
+        (OTP_RESEND_INTERVAL_MS - (now - existingOtp.lastSentAt)) / 1000,
       );
 
       return res.status(429).json({
@@ -364,14 +357,14 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   // 6. Send OTP through WhatsApp
   const waResponse = await sendOTP(normalizedPhone);
 
+  console.log(waResponse, "waResponsewaResponsewaResponsewaResponsewaResponse");
+
   if (!waResponse.success) {
     return res.status(502).json({
       success: false,
       message: "Failed to send OTP via WhatsApp. Please try again later.",
       error:
-        process.env.NODE_ENV === "production"
-          ? undefined
-          : waResponse.error,
+        process.env.NODE_ENV === "production" ? undefined : waResponse.error,
     });
   }
 
@@ -404,111 +397,102 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
   });
 });
 
-export const sendSignupPhoneOtpController = asyncHandler(
-  async (req, res) => {
-    const normalizedPhone = normalizePhone(req.body.phone);
+export const sendSignupPhoneOtpController = asyncHandler(async (req, res) => {
+  const normalizedPhone = normalizePhone(req.body.phone);
 
-    if (!normalizedPhone) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid phone number.",
-      });
-    }
-
-    // Check whether the phone is already registered
-    const digits = normalizedPhone.replace(/\D/g, "");
-    const phoneForLookup =
-      digits.length === 12 && digits.startsWith("91")
-        ? digits.slice(2)
-        : digits;
-
-    const phoneVariants = [
-      phoneForLookup,
-      normalizedPhone,
-      `+91${phoneForLookup}`,
-    ];
-
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        phone: {
-          in: [...new Set(phoneVariants)],
-        },
-      },
-      select: {
-        id: true,
-      },
+  if (!normalizedPhone) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid phone number.",
     });
+  }
 
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        code: "USER_ALREADY_EXISTS",
-        message: "This phone number is already registered. Please log in.",
-      });
-    }
+  // Check whether the phone is already registered
+  const digits = normalizedPhone.replace(/\D/g, "");
+  const phoneForLookup =
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
 
-    // Only send OTP to new users
-    const now = Date.now();
-    const existingOtp = await redis.get(`otp:${normalizedPhone}`);
+  const phoneVariants = [
+    phoneForLookup,
+    normalizedPhone,
+    `+91${phoneForLookup}`,
+  ];
 
-    if (existingOtp) {
-      const otpData =
-        typeof existingOtp === "string"
-          ? JSON.parse(existingOtp)
-          : existingOtp;
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      phone: {
+        in: [...new Set(phoneVariants)],
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
 
-      if (
-        otpData.lastSentAt &&
-        now - otpData.lastSentAt < OTP_RESEND_INTERVAL_MS
-      ) {
-        const waitSeconds = Math.ceil(
-          (OTP_RESEND_INTERVAL_MS -
-            (now - otpData.lastSentAt)) /
-            1000,
-        );
-
-        return res.status(429).json({
-          success: false,
-          message: `Please wait ${waitSeconds}s before requesting another code.`,
-        });
-      }
-    }
-
-    const waResponse = await sendOTP(normalizedPhone);
-
-    if (!waResponse.success) {
-      return res.status(502).json({
-        success: false,
-        message: "Failed to send OTP via WhatsApp. Please try again later.",
-      });
-    }
-
-    const providerOtp = waResponse.data;
-    const providerExpiry = providerOtp.expiresAt
-      ? new Date(providerOtp.expiresAt).getTime()
-      : NaN;
-
-    await redis.set(
-      `otp:${normalizedPhone}`,
-      JSON.stringify({
-        id: providerOtp.id,
-        expiresAt:
-          Number.isFinite(providerExpiry) && providerExpiry > now
-            ? providerExpiry
-            : now + OTP_TTL_MS,
-        lastSentAt: now,
-        attempts: 0,
-      }),
-      { PX: OTP_TTL_MS },
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Signup OTP sent successfully on WhatsApp.",
+  if (existingUser) {
+    return res.status(409).json({
+      success: false,
+      code: "USER_ALREADY_EXISTS",
+      message: "This phone number is already registered. Please log in.",
     });
-  },
-);
+  }
 
+  // Only send OTP to new users
+  const now = Date.now();
+  const existingOtp = await redis.get(`otp:${normalizedPhone}`);
+
+  if (existingOtp) {
+    const otpData =
+      typeof existingOtp === "string" ? JSON.parse(existingOtp) : existingOtp;
+
+    if (
+      otpData.lastSentAt &&
+      now - otpData.lastSentAt < OTP_RESEND_INTERVAL_MS
+    ) {
+      const waitSeconds = Math.ceil(
+        (OTP_RESEND_INTERVAL_MS - (now - otpData.lastSentAt)) / 1000,
+      );
+
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds}s before requesting another code.`,
+      });
+    }
+  }
+
+  const waResponse = await sendOTP(normalizedPhone);
+
+  if (!waResponse.success) {
+    return res.status(502).json({
+      success: false,
+      message: "Failed to send OTP via WhatsApp. Please try again later.",
+    });
+  }
+
+  const providerOtp = waResponse.data;
+  const providerExpiry = providerOtp.expiresAt
+    ? new Date(providerOtp.expiresAt).getTime()
+    : NaN;
+
+  await redis.set(
+    `otp:${normalizedPhone}`,
+    JSON.stringify({
+      id: providerOtp.id,
+      expiresAt:
+        Number.isFinite(providerExpiry) && providerExpiry > now
+          ? providerExpiry
+          : now + OTP_TTL_MS,
+      lastSentAt: now,
+      attempts: 0,
+    }),
+    { PX: OTP_TTL_MS },
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: "Signup OTP sent successfully on WhatsApp.",
+  });
+});
 
 // @desc    Register a new user with email
 // @route   POST /api/auth/signup
@@ -668,9 +652,7 @@ export const signupWithPhoneController = asyncHandler(async (req, res) => {
   const digits = normalizedPhone.replace(/\D/g, "");
 
   const phoneForLookup =
-    digits.length === 12 && digits.startsWith("91")
-      ? digits.slice(2)
-      : digits;
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
 
   // Support existing records stored with or without +91
   const phoneVariants = [
@@ -696,8 +678,7 @@ export const signupWithPhoneController = asyncHandler(async (req, res) => {
     if (user.isBlocked) {
       return res.status(403).json({
         success: false,
-        message:
-          "Your account has been blocked. Please contact support.",
+        message: "Your account has been blocked. Please contact support.",
       });
     }
 
@@ -763,7 +744,6 @@ export const signupWithPhoneController = asyncHandler(async (req, res) => {
     token,
   });
 });
-
 
 // @desc    Login user with email
 // @route   POST /api/auth/login
@@ -865,7 +845,7 @@ export const loginController = asyncHandler(async (req, res) => {
 //     : normalizedPhone;
 
 //     console.log(phoneForLookup, "phoneForLookupphoneForLookupphoneForLookup");
-    
+
 //   const user = await prisma.user.findUnique({
 //     where: { phone: phoneForLookup },
 //     include: {
@@ -907,7 +887,6 @@ export const loginController = asyncHandler(async (req, res) => {
 export const loginWithPhoneController = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
 
-  // Validate request
   if (!phone || !otp) {
     return res.status(400).json({
       success: false,
@@ -915,7 +894,57 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
     });
   }
 
-  // Verify and consume OTP
+  // Normalize before database lookup
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!normalizedPhone) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid phone number",
+    });
+  }
+
+  const phoneForLookup = normalizedPhone.startsWith("+91")
+    ? normalizedPhone.slice(3)
+    : normalizedPhone;
+
+  const phoneVariants = [
+    phoneForLookup,
+    normalizedPhone,
+    normalizedPhone.replace("+", ""),
+  ];
+
+  // Find existing account using supported formats
+  const user = await prisma.user.findFirst({
+    where: {
+      phone: {
+        in: [...new Set(phoneVariants)],
+      },
+    },
+    include: {
+      role: true,
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      code: "USER_NOT_FOUND",
+      message: "No account found. Please sign up.",
+      redirectTo: "/signup",
+      phone: phoneForLookup,
+    });
+  }
+
+  if (user.isBlocked) {
+    return res.status(403).json({
+      success: false,
+      code: "ACCOUNT_BLOCKED",
+      message: "Your account has been blocked.",
+    });
+  }
+
+  // Verify OTP before granting access
   const otpResult = await consumeOtp(phone, otp);
 
   if (!otpResult.ok) {
@@ -925,52 +954,121 @@ export const loginWithPhoneController = asyncHandler(async (req, res) => {
     });
   }
 
-  const normalizedPhone = otpResult.phone;
-
-  // Match existing Indian phone records stored without +91
-  const phoneForLookup = normalizedPhone.startsWith("+91")
-    ? normalizedPhone.slice(3)
-    : normalizedPhone;
-
-  // Find existing user
-  const user = await prisma.user.findUnique({
-    where: { phone: phoneForLookup },
-    include: { role: true },
-  });
-
-  // User is not registered: direct frontend to signup
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      code: "USER_NOT_FOUND",
-      message: "No account found with this phone number. Please create an account.",
-      redirectTo: "/signup",
-      phone: phoneForLookup,
-    });
-  }
-
-  // Check blocked account
-  if (user.isBlocked) {
-    return res.status(403).json({
-      success: false,
-      message: "Your account has been blocked. Please contact support.",
-    });
-  }
-
-  // Update last login
-  await prisma.user.update({
+  // Update login timestamp
+  const updatedUser = await prisma.user.update({
     where: { id: user.id },
-    data: { lastLogin: new Date() },
+    data: {
+      lastLogin: new Date(),
+    },
+    include: {
+      role: true,
+    },
   });
 
-  // Generate authentication token
-  const token = generateToken(user.id);
+  const token = generateToken(updatedUser.id);
 
   return res.status(200).json({
     success: true,
     message: "Login successful",
-    user: sanitizeUser(user),
+    user: sanitizeUser(updatedUser),
     token,
+  });
+});
+
+// @desc    Send an OTP for phone auth. Works for NEW and EXISTING users.
+//          Tells the frontend which one it is, so it can ask for a name.
+// @route   POST /api/auth/phone/send-otp
+// @access  Public
+export const sendAuthPhoneOtpController = asyncHandler(async (req, res) => {
+  const normalizedPhone = normalizePhone(req.body.phone);
+
+  if (!normalizedPhone) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid phone number.",
+    });
+  }
+
+  const digits = normalizedPhone.replace(/\D/g, "");
+  const phoneForLookup =
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+
+  const phoneVariants = [
+    phoneForLookup,
+    normalizedPhone,
+    `+91${phoneForLookup}`,
+  ];
+
+  const user = await prisma.user.findFirst({
+    where: { phone: { in: [...new Set(phoneVariants)] } },
+    select: { id: true, isBlocked: true },
+  });
+
+  if (user?.isBlocked) {
+    return res.status(403).json({
+      success: false,
+      code: "ACCOUNT_BLOCKED",
+      message: "Your account has been blocked. Please contact support.",
+    });
+  }
+
+  // Resend cooldown
+  const now = Date.now();
+  const existing = await redis.get(`otp:${normalizedPhone}`);
+
+  if (existing) {
+    const existingOtp =
+      typeof existing === "string" ? JSON.parse(existing) : existing;
+
+    if (
+      existingOtp.lastSentAt &&
+      now - existingOtp.lastSentAt < OTP_RESEND_INTERVAL_MS
+    ) {
+      const waitSeconds = Math.ceil(
+        (OTP_RESEND_INTERVAL_MS - (now - existingOtp.lastSentAt)) / 1000,
+      );
+
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds}s before requesting another code.`,
+      });
+    }
+  }
+
+  const waResponse = await sendOTP(normalizedPhone);
+
+  if (!waResponse.success) {
+    return res.status(502).json({
+      success: false,
+      message: "Failed to send OTP via WhatsApp. Please try again later.",
+      error:
+        process.env.NODE_ENV === "production" ? undefined : waResponse.error,
+    });
+  }
+
+  const providerOtp = waResponse.data;
+  const providerExpiry = providerOtp.expiresAt
+    ? new Date(providerOtp.expiresAt).getTime()
+    : NaN;
+
+  await redis.set(
+    `otp:${normalizedPhone}`,
+    JSON.stringify({
+      id: providerOtp.id,
+      expiresAt:
+        Number.isFinite(providerExpiry) && providerExpiry > now
+          ? providerExpiry
+          : now + OTP_TTL_MS,
+      lastSentAt: now,
+      attempts: 0,
+    }),
+    { PX: OTP_TTL_MS },
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: "OTP sent successfully on WhatsApp.",
+    isNewUser: !user,
   });
 });
 

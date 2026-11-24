@@ -112,12 +112,12 @@ export default function ProfilePage() {
           </button> */}
 
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <button
+            {/* <button
               type="button"
               className="w-full sm:w-auto self-start sm:self-auto text-[11px] font-medium tracking-[0.12em] uppercase border border-[#0F0F0F] px-5 py-3 hover:bg-[#0F0F0F] hover:text-white transition-colors"
             >
               Edit Profile
-            </button>
+            </button> */}
 
             <button
               type="button"

@@ -8,6 +8,7 @@ import {
   useWishlistStore,
   clearGuestWishlistStorage,
 } from "@/store/useWishlistStore";
+import { useAddressStore, stashGuestAddresses } from "./useAddressStore";
 
 export interface User {
   id: string;
@@ -21,12 +22,21 @@ interface AuthResponse {
   message: string;
   user: ApiUser;
   token: string;
+  /** "LOGIN" | "REGISTER" (returned by /api/auth/signup/phone) */
+  action?: "LOGIN" | "REGISTER";
 }
 
 interface SendOtpResponse {
   message: string;
   /** Present only outside production so the flow is testable without SMS. */
   devOtp?: string;
+}
+
+interface SendAuthOtpResponse {
+  success: boolean;
+  message: string;
+  /** true = no account for this number yet, so the name is required. */
+  isNewUser: boolean;
 }
 
 interface AuthState {
@@ -40,7 +50,15 @@ interface AuthState {
   /** Request an OTP for the given phone number. Returns the dev OTP in non-prod. */
   requestPhoneOtp: (phone: string) => Promise<string | undefined>;
   requestSignupPhoneOtp: (phone: string) => Promise<string | undefined>;
-  /** Register a new account with phone + OTP. */
+  /**
+   * Send an OTP for EITHER login or register. The result says whether this
+   * number is new (so the UI can ask for a name).
+   */
+  requestAuthOtp: (phone: string) => Promise<{ isNewUser: boolean }>;
+  /**
+   * Verify OTP. Existing number -> logs in. New number -> registers
+   * (fullName required). Token is persisted in localStorage ("auth-storage").
+   */
   signupWithPhone: (
     phone: string,
     otp: string,
@@ -92,6 +110,8 @@ export const useAuthStore = create<AuthState>()(
         clearGuestCartStorage();
         clearGuestWishlistStorage();
 
+        useAddressStore.getState().clearAddresses();
+
         // Switch both stores to empty guest sessions.
         // This does NOT delete database cart/wishlist records.
         void useCartStore.getState().setSession(false);
@@ -135,12 +155,24 @@ export const useAuthStore = create<AuthState>()(
         return data.devOtp;
       },
 
+      requestAuthOtp: async (phone: string) => {
+        const data = await apiPost<SendAuthOtpResponse>(
+          "/api/auth/phone/send-otp",
+          { phone },
+        );
+
+        return { isNewUser: data.isNewUser };
+      },
+
       signupWithPhone: async (phone: string, otp: string, fullName: string) => {
         const data = await apiPost<AuthResponse>("/api/auth/signup/phone", {
           phone,
           otp,
           fullName,
         });
+
+        // Copy guest addresses BEFORE auth state flips (see useAddressStore).
+        stashGuestAddresses();
 
         set({
           user: mapUser(data.user),
@@ -154,6 +186,8 @@ export const useAuthStore = create<AuthState>()(
           phone,
           otp,
         });
+
+        stashGuestAddresses();
 
         set({
           user: mapUser(data.user),

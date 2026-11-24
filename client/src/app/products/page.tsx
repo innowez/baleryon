@@ -1,7 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
@@ -47,7 +55,7 @@ function ProductsContent() {
   const [filterOptions, setFilterOptions] = useState<ShopFilterOptions | null>(
     null,
   );
-
+  const router = useRouter();
 
   const [defaultPriceMax, setDefaultPriceMax] = useState(3999);
 
@@ -195,16 +203,32 @@ function ProductsContent() {
     setCurrentPage(1);
   };
 
-  const handleSearch = (query: string) => {
-    setSearch(query);
+  const handleSearch = useCallback((query: string) => {
+    const normalizedQuery = query.trim().replace(/\s+/g, " ");
+
+    setSearch(normalizedQuery);
     setCurrentPage(1);
-  };
+  }, []);
 
   const handleResetFilters = () => {
+    // Clear all filters.
     setFilters(createDefaultFilters(defaultPriceMax));
+
+    // Clear search.
     setSearch("");
+
+    // Reset sorting and pagination.
     setSort("relevance");
     setCurrentPage(1);
+
+    // Remove category query parameter.
+    // This is important because categoryFromUrl
+    // overrides the category filter state.
+    if (searchParams.has("category")) {
+      router.replace("/products", {
+        scroll: false,
+      });
+    }
   };
 
   const activeFilterCount = useMemo(
@@ -234,7 +258,7 @@ function ProductsContent() {
 
   return (
     <>
-    <AnnouncementBar />
+      <AnnouncementBar />
       <Header variant="solid" />
 
       <main className="pt-[calc(2.5rem+4rem)] pb-24 md:pb-10">
@@ -363,7 +387,6 @@ function ProductsContent() {
 
       <Footer />
       <BottomNav />
-
     </>
   );
 }

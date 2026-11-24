@@ -8,7 +8,10 @@ type FilterPanelProps = {
   filters: FilterState;
   filterOptions: ShopFilterOptions | null;
   defaultPriceMax: number;
-  onChange: <K extends keyof FilterState>(key: K, value: FilterState[K]) => void;
+  onChange: <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K],
+  ) => void;
 };
 
 const FALLBACK_COLOR_HEX: Record<string, string> = {
@@ -37,7 +40,9 @@ export function FilterPanel({
   defaultPriceMax,
   onChange,
 }: FilterPanelProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<
+    Record<SectionKey, boolean>
+  >({
     category: true,
     price: true,
     rating: false,
@@ -97,7 +102,10 @@ export function FilterPanel({
               <p className="text-sm text-[#6B7280]">No categories available</p>
             ) : (
               categories.map((cat) => (
-                <label key={cat} className="flex items-center gap-2.5 cursor-pointer group">
+                <label
+                  key={cat}
+                  className="flex items-center gap-2.5 cursor-pointer group"
+                >
                   <input
                     type="checkbox"
                     checked={filters.categories.includes(cat)}
@@ -114,7 +122,7 @@ export function FilterPanel({
         )}
       </div>
 
-      <div className="border-b border-[#E5E5E5] pb-6">
+      {/* <div className="border-b border-[#E5E5E5] pb-6">
         <button
           onClick={() => toggleSection("price")}
           className="flex items-center justify-between w-full mb-3"
@@ -129,27 +137,108 @@ export function FilterPanel({
           <div className="space-y-3">
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-xs text-[#6B7280] mb-1.5 block">Min</label>
+                <label className="text-xs text-[#6B7280] mb-1.5 block">
+                  Min
+                </label>
                 <input
                   type="number"
                   value={filters.priceMin}
-                  onChange={(e) => onChange("priceMin", parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) =>
+                    onChange("priceMin", parseInt(e.target.value, 10) || 0)
+                  }
                   className="w-full px-2.5 py-2 rounded-lg border border-[#E5E5E5] text-sm focus:outline-none focus:border-[#0F0F0F] focus:ring-1 focus:ring-[#0F0F0F]"
                   min={0}
                   max={priceMaxLimit}
                 />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-[#6B7280] mb-1.5 block">Max</label>
+                <label className="text-xs text-[#6B7280] mb-1.5 block">
+                  Max
+                </label>
                 <input
                   type="number"
                   value={filters.priceMax}
                   onChange={(e) =>
-                    onChange("priceMax", parseInt(e.target.value, 10) || priceMaxLimit)
+                    onChange(
+                      "priceMax",
+                      parseInt(e.target.value, 10) || priceMaxLimit,
+                    )
                   }
                   className="w-full px-2.5 py-2 rounded-lg border border-[#E5E5E5] text-sm focus:outline-none focus:border-[#0F0F0F] focus:ring-1 focus:ring-[#0F0F0F]"
                   min={0}
                   max={priceMaxLimit}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div> */}
+
+      {/* Price Filter */}
+      <div className="border-b border-[#E5E5E5] pb-6">
+        <button
+          type="button"
+          onClick={() => toggleSection("price")}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-sm text-[#0F0F0F]">Price</h3>
+
+          <ChevronDown
+            size={16}
+            className={`transition-transform ${
+              expandedSections.price ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {expandedSections.price && (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              {/* Minimum Price */}
+              <div className="flex-1 min-w-0">
+                <label className="text-xs text-[#6B7280] mb-1.5 block">
+                  Min
+                </label>
+
+                <input
+                  type="number"
+                  value={filters.priceMin}
+                  min={0}
+                  max={priceMaxLimit}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    onChange(
+                      "priceMin",
+                      value === "" ? 0 : Math.max(0, Number(value)),
+                    );
+                  }}
+                  className="w-full px-2.5 py-2 rounded-lg border border-[#E5E5E5] text-sm focus:outline-none focus:border-[#0F0F0F] focus:ring-1 focus:ring-[#0F0F0F]"
+                />
+              </div>
+
+              {/* Maximum Price */}
+              <div className="flex-1 min-w-0">
+                <label className="text-xs text-[#6B7280] mb-1.5 block">
+                  Max
+                </label>
+
+                <input
+                  type="number"
+                  value={filters.priceMax}
+                  min={0}
+                  max={priceMaxLimit}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    onChange(
+                      "priceMax",
+                      value === ""
+                        ? 0
+                        : Math.max(0, Math.min(priceMaxLimit, Number(value))),
+                    );
+                  }}
+                  className="w-full px-2.5 py-2 rounded-lg border border-[#E5E5E5] text-sm focus:outline-none focus:border-[#0F0F0F] focus:ring-1 focus:ring-[#0F0F0F]"
                 />
               </div>
             </div>
@@ -173,7 +262,9 @@ export function FilterPanel({
             {[5, 4, 3, 2, 1].map((stars) => (
               <button
                 key={stars}
-                onClick={() => onChange("rating", filters.rating === stars ? 0 : stars)}
+                onClick={() =>
+                  onChange("rating", filters.rating === stars ? 0 : stars)
+                }
                 className={`w-full text-left px-2.5 py-2 rounded-lg transition-all ${
                   filters.rating === stars
                     ? "bg-[#0F0F0F] text-white"
@@ -210,7 +301,9 @@ export function FilterPanel({
         {expandedSections.color && (
           <div className="grid grid-cols-4 gap-2.5">
             {colors.length === 0 ? (
-              <p className="col-span-4 text-sm text-[#6B7280]">No colors available</p>
+              <p className="col-span-4 text-sm text-[#6B7280]">
+                No colors available
+              </p>
             ) : (
               colors.map((color) => (
                 <button
@@ -246,7 +339,9 @@ export function FilterPanel({
         {expandedSections.size && (
           <div className="grid grid-cols-3 gap-2">
             {sizes.length === 0 ? (
-              <p className="col-span-3 text-sm text-[#6B7280]">No sizes available</p>
+              <p className="col-span-3 text-sm text-[#6B7280]">
+                No sizes available
+              </p>
             ) : (
               sizes.map((size) => (
                 <button

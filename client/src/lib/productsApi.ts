@@ -23,8 +23,10 @@ function buildQuery(params: ListProductsParams): string {
   searchParams.set("sort", params.sort);
   searchParams.set("gender", params.gender || "men");
 
-  if (params.search.trim()) {
-    searchParams.set("search", params.search.trim());
+  const normalizedSearch = params.search.trim().replace(/\s+/g, " ");
+
+  if (normalizedSearch) {
+    searchParams.set("search", normalizedSearch);
   }
   if (params.filters.categories.length) {
     searchParams.set("categories", params.filters.categories.join(","));
@@ -49,17 +51,17 @@ function buildQuery(params: ListProductsParams): string {
 }
 
 export async function fetchShopProducts(
-  params: ListProductsParams
+  params: ListProductsParams,
 ): Promise<ShopProductsResponse> {
   const query = buildQuery(params);
   return apiFetch<ShopProductsResponse>(`/api/shop/products?${query}`);
 }
 
 export async function fetchShopFilterOptions(
-  gender = "men"
+  gender = "men",
 ): Promise<ShopFilterOptions> {
   return apiFetch<ShopFilterOptions>(
-    `/api/shop/products/filters?gender=${encodeURIComponent(gender)}`
+    `/api/shop/products/filters?gender=${encodeURIComponent(gender)}`,
   );
 }
 
@@ -71,7 +73,7 @@ export async function fetchShopProductById(id: string): Promise<Product> {
 export async function fetchRelatedShopProducts(
   category: string,
   excludeId: string,
-  limit = 4
+  limit = 4,
 ): Promise<Product[]> {
   const searchParams = new URLSearchParams({
     gender: "men",
@@ -82,7 +84,7 @@ export async function fetchRelatedShopProducts(
   });
 
   const data = await apiFetch<ShopProductsResponse>(
-    `/api/shop/products?${searchParams.toString()}`
+    `/api/shop/products?${searchParams.toString()}`,
   );
 
   return data.products.filter((p) => p.id !== excludeId).slice(0, limit);
@@ -98,7 +100,7 @@ export async function fetchNewArrivals(limit = 4): Promise<Product[]> {
   });
 
   const data = await apiFetch<ShopProductsResponse>(
-    `/api/shop/products?${searchParams.toString()}`
+    `/api/shop/products?${searchParams.toString()}`,
   );
 
   return data.products;
@@ -114,7 +116,7 @@ export async function fetchBestSellers(limit = 6): Promise<Product[]> {
   });
 
   const data = await apiFetch<ShopProductsResponse>(
-    `/api/shop/products?${searchParams.toString()}`
+    `/api/shop/products?${searchParams.toString()}`,
   );
 
   return data.products;
